@@ -37,7 +37,7 @@ impl std::hash::Hash for Slab {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         let mut m = self.data;
         while m % 2 == 0 {
-            m = m >> 1;
+            m >>= 1;
         }
         m.hash(state);
     }
@@ -91,7 +91,7 @@ fn bool_vec_to_integer(data: Vec<bool>) -> u16 {
 fn reduce_to_canonical_form(x: u16) -> u16 {
     let mut result = x;
     while result % 2 == 0 {
-        result = result >> 1;
+        result >>= 1;
     }
     result
 }
