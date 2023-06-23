@@ -85,10 +85,7 @@ fn bool_vec_to_integer(data: Vec<bool>) -> u16 {
         }
     }
     //reduce to canonical form
-    while result % 2 == 0 {
-        result = result >> 1;
-    }
-    result
+    reduce_to_canonical_form(result)
 }
 
 fn reduce_to_canonical_form(x: u16) -> u16 {
