@@ -13,3 +13,10 @@ edition = "2021"
 grafferous = { path = "../iterated_rps/graph" }
 itertools = "0.11.0"
 rand = "0.8.5"
+
+[dev-dependencies]
+criterion = "0.5.1"
+
+[[bench]]
+name = "benchmarks"
+harness = false
