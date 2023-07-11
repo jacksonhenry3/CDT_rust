@@ -2,9 +2,6 @@
 macro_rules! format_digit {
     ($digit:expr, $length:expr) => {
         format!("{:0width$b}", $digit, width = $length)
-            .chars()
-            .rev()
-            .collect::<String>()
     };
 }
 
@@ -21,6 +18,14 @@ impl Slab {
             length: data.len(),
             data: bool_vec_to_integer(data),
         }
+    }
+
+    pub fn string(&self) -> String {
+        let mut result = String::new();
+        for i in 0..self.length {
+            result.push(if self[i] { '1' } else { '0' });
+        }
+        result
     }
 
     pub fn set(&mut self, index: usize, value: bool) {
@@ -50,15 +55,56 @@ impl Slab {
         triangle_type: bool,
     ) -> usize {
         let mut sum = 0;
+
+        //consider folding this using an accumulant pattern
+
         for i in 0..self.length {
-            if sum == triangle_index {
-                return i;
-            }
             if self[i] == triangle_type {
                 sum += 1;
             }
+            if sum == triangle_index + 1 {
+                return i;
+            }
         }
+        //debug messages
+        println!("triangle index: {}", triangle_index);
+        println!("triangle type: {}", triangle_type);
+        println!("slab: {}", self);
         panic!("triangle index out of bounds");
+    }
+
+    pub fn insert(&mut self, index: usize, value: bool) {
+        // assert!(index < self.length, "index out of bounds");
+        // insert a 1 or 0 at a given index shifting values to either side
+        let slab_left_data = (self.data >> index) << index;
+        let slab_right_data = self.data - slab_left_data;
+        let new_slab_data = (slab_left_data << 1) + ((value as u64) << index) + slab_right_data;
+        self.data = new_slab_data;
+        self.length += 1;
+
+        assert!(self.length < 64, "slab length cannot be greater than 64")
+    }
+
+    pub fn remove(&mut self, index: usize) {
+        // assert!(index < self.length, "index out of bounds");
+        // remove a 1 or 0 at a given index shifting values to either side
+        let removed_value = !(1<<index) & self.data;
+        let left_data = (removed_value >>index)<<index;
+        let right_data = removed_value - left_data;
+        let new_slab_data = (left_data >> 1) + right_data;
+        self.data = new_slab_data;
+        self.length -= 1;
+
+        //this is wrong, its not slab length its spatial slice length (3 ze5ros and 3 ones)
+        assert!(self.length >= 3, "slab length cannot be less than 3")
+    }
+
+    pub fn ones(&self) -> usize {
+        sum_binary_digit_range(self.data, 0, self.length)
+    }
+
+    pub fn zeros(&self) -> usize {
+        sum_binary_digit_range(!self.data, 0, self.length)
     }
 }
 

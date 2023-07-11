@@ -1,33 +1,30 @@
+//allow dead code
+#![allow(dead_code)]
+//allow unused variables
+#![allow(unused_variables)]
+//allow unused imports
+#![allow(unused_imports)]
+//allow unused mut
+#![allow(unused_mut)]
+
 use cdt_rust;
 use rand::{thread_rng, Rng};
 
 fn main() {
-    //create a flat cdt
-    let cdt = cdt_rust::CDT::new_flat(10, 10);
 
-    let time_index = 3;
-    let space_index = 5;
 
-    //get the pair of the triangle at time_index, space_index
-    let pair = cdt.get_pair(time_index, space_index);
+    //test adding and removing many triangles
+    let mut cdt = cdt_rust::CDT::new_flat(10,10);
+    let refrence_cdt = cdt.clone();
+    let mut rng = thread_rng();
 
-    println!(
-        "pair of ({},{}) is ({},{})",
-        time_index, space_index, pair.0, pair.1
-    );
+    for i in 0..100 {
+        let (time_index, space_index) = cdt.random_triangle();
+        cdt.increase_move(time_index, space_index);
 
-    println!(
-        "triangle index of ({},{}) is {}",
-        time_index,
-        space_index,
-        cdt.get_triangle_index(time_index, space_index)
-    );
+        let (time_index, space_index) = cdt.random_triangle();
+        cdt.decrease_move(time_index, space_index);
 
-    println!(
-        "triangle index of ({},{}) is {}",
-        pair.0,
-        pair.1,
-        cdt.get_triangle_index(pair.0, pair.1)
-    );
-    
+    }
+
 }

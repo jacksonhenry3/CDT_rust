@@ -4,24 +4,6 @@ use std::ops::Index;
 use rand::Rng;
 pub use slab::Slab;
 
-pub fn main() {
-    let mut example = CDT::new_flat(5, 5);
-
-    // example.increase_move(2, 3, 3, 3);
-
-    let space_index = 8;
-    let time_index = 2;
-
-    //print the slab at time_index
-    println!("slab at time_index: {}", example.slabs[time_index]);
-    //loop over a slab
-    // for (index, bit) in example.slabs[time_index].clone().into_iter().enumerate() {
-
-    //     println!("{}: {}", index, bit);
-
-    // }
-}
-
 /// A CDT is a sequence of slabs, where the last slab is connected to the first slab.
 #[derive(Debug, Eq, PartialOrd, Ord, Clone, PartialEq, Hash)]
 pub struct CDT {
@@ -51,82 +33,46 @@ impl CDT {
         CDT::new((0..time_size).map(|_| slab_data.clone()).collect())
     }
 
-    pub fn increase_move(
-        &mut self,
-        past_time_index: usize,
-        past_space_index: usize,
-        future_time_index: usize,
-        future_space_index: usize,
-    ) {
+    pub fn volume_profile(&self) -> Vec<usize> {
+        let mut result = vec![0; self.slabs.len()];
+        for (i, slab) in self.slabs.iter().enumerate() {
+            result[i] = slab.length;
+        }
+        result
+    }
+
+    pub fn increase_move(&mut self, time_index: usize, space_index: usize) {
+        let (other_time_index, other_space_index) = self.get_pair(time_index, space_index);
+
+        //calculate the delta_t using modular arithmetic
+        let delta_t = (other_time_index + self.slabs.len() - time_index) % self.slabs.len();
+
+        //if delta_t is 1 then time_index is the past and other_time_index is the future
+        let (past_time_index, past_space_index, future_time_index, future_space_index) =
+            if delta_t != 1 {
+                (time_index, space_index, other_time_index, other_space_index)
+            } else {
+                (other_time_index, other_space_index, time_index, space_index)
+            };
+
         //modify the slab at time_index and the corresponding slab at time_index+1
-        let past_slab = self.slabs[past_time_index].clone();
-        let past_slab_left_data = (past_slab.data >> past_space_index) << past_space_index;
-        let past_slab_right_data = past_slab.data - past_slab_left_data;
-        let new_past_slab_data =
-            (past_slab_left_data << 1) + (1 << past_space_index) + past_slab_right_data;
-        self.slabs[past_time_index].data = new_past_slab_data;
-        self.slabs[past_time_index].length += 1;
-
-        let future_slab = self.slabs[future_time_index].clone();
-        let future_slab_left_data = (future_slab.data >> future_space_index) << future_space_index;
-        let future_slab_right_data = future_slab.data - future_slab_left_data;
-        let new_future_slab_data =
-            (future_slab_left_data << 1) + (0 << future_space_index) + future_slab_right_data;
-        self.slabs[future_time_index].data = new_future_slab_data;
-        self.slabs[future_time_index].length += 1;
-
-        // check that the slabs are not too long
-        assert!(
-            self.slabs[past_time_index].length < 64,
-            "past slab would increase beyond 64"
-        );
-
-        assert!(
-            self.slabs[future_time_index].length < 64,
-            "future slab would increase beyond 64"
-        );
+        self.slabs[past_time_index].insert(past_space_index, true);
+        self.slabs[future_time_index].insert(future_space_index, false);
     }
 
-    pub fn decrease_move(
-        &mut self,
-        past_time_index: usize,
-        past_space_index: usize,
-        future_time_index: usize,
-        future_space_index: usize,
-    ) {
+    pub fn decrease_move(&mut self, time_index: usize, space_index: usize) {
+
+
+        let (other_time_index, other_space_index) = self.get_pair(time_index, space_index);
+
+
+
         //remove whatever value is at the past_time_index and past_space_index
-        let past_slab = self.slabs[past_time_index].clone();
-        let mut past_slab_left_data = (past_slab.data >> past_space_index) << past_space_index;
-        let past_slab_right_data = past_slab.data - past_slab_left_data;
-        past_slab_left_data = (past_slab.data >> (past_space_index + 1)) << (past_space_index);
-        let new_past_slab_data = (past_slab_left_data) + past_slab_right_data;
-        self.slabs[past_time_index].data = new_past_slab_data;
-        self.slabs[past_time_index].length -= 1;
-
-        //remove whatever value is at the future_time_index and future_space_index
-        let future_slab = self.slabs[future_time_index].clone();
-        let mut future_slab_left_data =
-            (future_slab.data >> future_space_index) << future_space_index;
-        let future_slab_right_data = future_slab.data - future_slab_left_data;
-        future_slab_left_data =
-            (future_slab.data >> (future_space_index + 1)) << (future_space_index);
-        let new_future_slab_data = (future_slab_left_data) + future_slab_right_data;
-        self.slabs[future_time_index].data = new_future_slab_data;
-        self.slabs[future_time_index].length -= 1;
-
-        //if any slab would decrease in size below 3, panic
-        assert!(
-            self.slabs[past_time_index].length > 2,
-            "past slab would decrease below 3"
-        );
-
-        assert!(
-            self.slabs[future_time_index].length > 2,
-            "future slab would decrease below 3"
-        );
+        self.slabs[other_time_index].remove(other_space_index);
+        self.slabs[time_index].remove(space_index);
     }
 
-    pub fn select_triangle(&self) -> (usize, usize) {
+    pub fn random_triangle(&self) -> (usize, usize) {
         let total_length = &self.slabs.iter().fold(0, |acc, x| acc + x.length);
 
         //random number between 0 and total_length
@@ -160,37 +106,31 @@ impl CDT {
         let triangle_index = slab.get_triangle_index(space_index);
 
         let other_time_index = if triangle {
-            time_index - 1
+            (time_index + self.slabs.len() - 1) % self.slabs.len()
         } else {
-            time_index + 1
+            (time_index + 1) % self.slabs.len()
         };
         let other_slab = &self.slabs[other_time_index];
 
-        let other_space_index = other_slab.get_triangle_in_slab_by_index(triangle_index, triangle);
+        let other_space_index = other_slab.get_triangle_in_slab_by_index(triangle_index, !triangle);
+
+        //assert that the other triangle is a differnt type as the original triangle
+        assert_ne!(triangle, other_slab[other_space_index]);
+
         (other_time_index, other_space_index)
     }
 
-    pub fn get_triangle_in_slab_by_index(
-        &self,
-        time_index: usize,
-        triangle_index: usize,
-        triangle_type: u64,
-    ) -> (usize, usize) {
-        let mut sum = 0;
-        let mut space_index = 0;
-        for i in 0..self.slabs[time_index].length {
-            if sum == triangle_index {
-                space_index = i;
-                break;
-            }
-            if self.slabs[time_index].data & (1 << i) == 0 {
-                sum += 1;
+    pub fn is_valid(&self) -> bool {
+        //check that each past sslab has the same number of ones as its corresponding future slab has zeros
+        for (i, slab) in self.slabs.iter().enumerate() {
+            let other_slab = &self.slabs[(i + 1) % self.slabs.len()];
+            if slab.zeros() != other_slab.ones() {
+                return false;
             }
         }
-        (time_index, space_index)
+        true
     }
 }
-
 
 //impl index for CDT
 impl Index<usize> for CDT {
