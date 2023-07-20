@@ -9,7 +9,7 @@ macro_rules! format_digit {
 #[derive(Debug, Eq, PartialOrd, Ord, Clone, PartialEq, Hash)]
 pub struct Slab {
     pub length: usize,
-    pub data: u64,
+    pub data: u128,
 }
 
 impl Slab {
@@ -78,18 +78,18 @@ impl Slab {
         // insert a 1 or 0 at a given index shifting values to either side
         let slab_left_data = (self.data >> index) << index;
         let slab_right_data = self.data - slab_left_data;
-        let new_slab_data = (slab_left_data << 1) + ((value as u64) << index) + slab_right_data;
+        let new_slab_data = (slab_left_data << 1) + ((value as u128) << index) + slab_right_data;
         self.data = new_slab_data;
         self.length += 1;
 
-        assert!(self.length < 64, "slab length cannot be greater than 64")
+        assert!(self.length < 128, "slab length cannot be greater than 128")
     }
 
     pub fn remove(&mut self, index: usize) {
         // assert!(index < self.length, "index out of bounds");
         // remove a 1 or 0 at a given index shifting values to either side
-        let removed_value = !(1<<index) & self.data;
-        let left_data = (removed_value >>index)<<index;
+        let removed_value = !(1 << index) & self.data;
+        let left_data = (removed_value >> index) << index;
         let right_data = removed_value - left_data;
         let new_slab_data = (left_data >> 1) + right_data;
         self.data = new_slab_data;
@@ -105,6 +105,14 @@ impl Slab {
 
     pub fn zeros(&self) -> usize {
         sum_binary_digit_range(!self.data, 0, self.length)
+    }
+
+    pub fn to_vec(&self) -> Vec<bool> {
+        let mut result = Vec::new();
+        for i in 0..self.length {
+            result.push(self[i]);
+        }
+        result
     }
 }
 
@@ -130,7 +138,7 @@ impl std::fmt::Display for Slab {
     }
 }
 
-pub fn bool_vec_to_integer(data: Vec<bool>) -> u64 {
+pub fn bool_vec_to_integer(data: Vec<bool>) -> u128 {
     let mut result = 0;
     let mut pow = 0u32;
 
@@ -139,7 +147,7 @@ pub fn bool_vec_to_integer(data: Vec<bool>) -> u64 {
     while iter.peek().is_some() {
         if let Some(i) = iter.position(|&x| x) {
             pow += i as u32;
-            result += 2u64.pow(pow);
+            result += 2u128.pow(pow);
             pow += 1;
         }
     }
@@ -147,10 +155,31 @@ pub fn bool_vec_to_integer(data: Vec<bool>) -> u64 {
     result
 }
 
-pub fn sum_binary_digit_range(n: u64, start: usize, end: usize) -> usize {
+pub fn sum_binary_digit_range(n: u128, start: usize, end: usize) -> usize {
     let mut sum = 0;
     for i in start..end {
         sum += (n >> i) & 1;
     }
     sum as usize
+}
+
+
+//impl iter using to_vec
+impl IntoIterator for Slab {
+    type Item = bool;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.to_vec().into_iter()
+    }
+}
+
+//same thing but for &Slab
+impl<'a> IntoIterator for &'a Slab {
+    type Item = bool;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.to_vec().into_iter()
+    }
 }

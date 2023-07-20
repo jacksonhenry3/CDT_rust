@@ -44,23 +44,27 @@ mod tests {
 
     #[test]
     fn test_remove() {
-        let mut slab = Slab::new(vec![true,true, false, true]);
+        let mut slab = Slab::new(vec![true, true, false, true]);
         slab.remove(1);
         assert_eq!(slab.data, 7);
         assert_eq!(slab.length, 3);
 
-        let mut slab = Slab::new(vec![true,true, false, true]);
+        let mut slab = Slab::new(vec![true, true, false, true]);
         slab.remove(0);
         assert_eq!(slab.data, 6);
         assert_eq!(slab.length, 3);
 
         // 10 tests with new data
-        let mut slab = Slab::new(vec![true, false, true, true, false, true, true, false, true, true]);
+        let mut slab = Slab::new(vec![
+            true, false, true, true, false, true, true, false, true, true,
+        ]);
         slab.remove(0);
         assert_eq!(slab.data, 0b101101101);
         assert_eq!(slab.length, 9);
 
-        let mut slab = Slab::new(vec![true, false, true, true, false, true, true, false, true, true]);
+        let mut slab = Slab::new(vec![
+            true, false, true, true, false, true, true, false, true, true,
+        ]);
         slab.remove(1);
         println!("slab.data: {}", slab);
         assert_eq!(slab.data, 0b101101101);
@@ -69,7 +73,6 @@ mod tests {
         // let mut slab = Slab::new(vec![true, false, true, true, false, true, true, false, true, true]);
         // slab.remove(2);
         // assert_eq!(slab.data, 0b101101111);
-
     }
 
     #[test]
@@ -85,9 +88,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "slab length cannot be greater than 64")]
+    #[should_panic(expected = "slab length cannot be greater than 128")]
     fn test_insert_panic() {
-        let mut slab = Slab::new(vec![true; 64]);
+        let mut slab = Slab::new(vec![true; 128]);
         slab.insert(0, false);
     }
 
