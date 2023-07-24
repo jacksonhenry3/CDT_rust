@@ -163,7 +163,6 @@ pub fn sum_binary_digit_range(n: u128, start: usize, end: usize) -> usize {
     sum as usize
 }
 
-
 //impl iter using to_vec
 impl IntoIterator for Slab {
     type Item = bool;

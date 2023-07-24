@@ -9,7 +9,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-#local 
 grafferous = { path = "../iterated_rps/graph" }
 itertools = "0.11.0"
 rand = "0.8.5"

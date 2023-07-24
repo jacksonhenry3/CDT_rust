@@ -1,16 +1,14 @@
-use crate::slab::Slab;   
-use std::ops::{Index, IndexMut};
+use crate::slab::Slab;
+use grafferous;
 
-use rand::Rng;
 use rand::seq::SliceRandom;
-
+use rand::Rng;
 
 /// A CDT is a sequence of slabs, where the last slab is connected to the first slab.
 #[derive(Debug, Eq, PartialOrd, Ord, Clone, PartialEq, Hash)]
 pub struct CDT {
     pub slabs: Vec<Slab>,
 }
-
 
 impl CDT {
     pub fn new(slabs: Vec<Slab>) -> CDT {
@@ -20,12 +18,14 @@ impl CDT {
     pub fn random(volume_profile: Vec<u8>) -> CDT {
         let mut rng = rand::thread_rng();
         let mut slabs = Vec::new();
-        for (i,volume) in volume_profile.clone().into_iter().enumerate() {
-            
+        for (i, volume) in volume_profile.clone().into_iter().enumerate() {
             //create a vec with the correct number of 1s and 0s
             let mut slab_data = vec![true; volume as usize];
-            slab_data.append(&mut vec![false; (volume_profile[(i+1)% volume_profile.len()]) as usize]);
-
+            slab_data.append(&mut vec![
+                false;
+                (volume_profile[(i + 1) % volume_profile.len()])
+                    as usize
+            ]);
 
             slab_data.shuffle(&mut rng);
 
@@ -49,61 +49,8 @@ impl CDT {
         result
     }
 
-    pub fn increase_move(&mut self, time_index: usize, space_index: usize) {
-        let (other_time_index, other_space_index) = self.get_temporal_pair(time_index, space_index);
-
-        //calculate the delta_t using modular arithmetic
-        let delta_t = (other_time_index + self.slabs.len() - time_index) % self.slabs.len();
-
-        //if delta_t is 1 then time_index is the past and other_time_index is the future
-        let (past_time_index, past_space_index, future_time_index, future_space_index) =
-            if delta_t != 1 {
-                (time_index, space_index, other_time_index, other_space_index)
-            } else {
-                (other_time_index, other_space_index, time_index, space_index)
-            };
-
-        //if either of the slabs are len 128 then return
-        if self.slabs[past_time_index].length == 127 || self.slabs[future_time_index].length == 127
-        {
-            println!("slab length cannot be greater than 127, move aborted");
-            return;
-        }
-
-        //modify the slab at time_index and the corresponding slab at time_index+1
-        self.slabs[past_time_index].insert(past_space_index, true);
-        self.slabs[future_time_index].insert(future_space_index, false);
-    }
-
-    pub fn decrease_move(&mut self, time_index: usize, space_index: usize) {
-        let (other_time_index, other_space_index) = self.get_temporal_pair(time_index, space_index);
-
-        //if either of the slabs have 4 zeros or 4 ones then return
-        if self.slabs[time_index].ones() < 4 || self.slabs[other_time_index].ones() < 4 {
-            println!("slab length cannot be less than 4, move aborted");
-            return;
-        }
-
-        if self.slabs[time_index].zeros() < 4 || self.slabs[other_time_index].zeros() < 4 {
-            println!("slab length cannot be less than 4, move aborted");
-            return;
-        }
-
-        //remove whatever value is at the past_time_index and past_space_index
-        self.slabs[other_time_index].remove(other_space_index);
-        self.slabs[time_index].remove(space_index);
-    }
-
-    pub fn parity_move(&mut self, time_index: usize, space_index: usize) {
-        let other_space_index = (space_index + 1) % self.slabs[time_index].length;
-
-        assert!(self[time_index][space_index] != self[time_index][other_space_index], "tried to swap {} and {} in slice {} which are both {}", space_index, other_space_index, time_index, self[time_index][space_index]);
-        
-        let new_value = !self[time_index][space_index];
-
-        self[time_index].set(space_index, new_value);
-        self[time_index].set(other_space_index, !new_value);
-
+    pub fn number_of_triangles(&self) -> usize {
+        2*self.slabs.iter().fold(0, |acc, x| acc + x.ones())
     }
 
     pub fn random_triangle(&self) -> (usize, usize) {
@@ -156,25 +103,35 @@ impl CDT {
 
     pub fn all_transition_triangles(&self) -> Vec<(usize, usize)> {
         let mut different_triangles = Vec::new();
-    
+
         for (time_index, slab) in self.slabs.iter().enumerate() {
-            
-            for (i,value) in slab.into_iter().enumerate() {
-                if value != slab[(i+1)%slab.length] {
+            for (i, value) in slab.into_iter().enumerate() {
+                if value != slab[(i + 1) % slab.length] {
                     different_triangles.push((time_index, i));
                 }
             }
         }
-    
+
         different_triangles
     }
 
-    pub fn random_transisition_triangle(&self) -> (usize, usize) {
+    pub fn random_transition_triangle(&self) -> (usize, usize) {
         let transition_triangles = self.all_transition_triangles();
         //select a random transition triangle
-        *transition_triangles.choose(&mut rand::thread_rng()).unwrap()
+        *transition_triangles
+            .choose(&mut rand::thread_rng())
+            .unwrap()
     }
 
+    pub fn triangles(&self) -> Vec<(usize, usize, bool)> {
+        let mut result = Vec::new();
+        for (time_index, slab) in self.slabs.iter().enumerate() {
+            for (space_index, value) in slab.into_iter().enumerate() {
+                result.push((time_index, space_index, value));
+            }
+        }
+        result
+    }
     pub fn is_valid(&self) -> bool {
         //check that each past sslab has the same number of ones as its corresponding future slab has zeros
         for (i, slab) in self.slabs.iter().enumerate() {
@@ -185,8 +142,56 @@ impl CDT {
         }
         true
     }
-}
 
+    pub fn to_graph(&self) -> grafferous::Graph<(i32,i32),()> {
+        let mut g = grafferous::Graph::<(i32,i32),()>::new();
+
+        let mut xf = 0;
+        let mut xp = 0;
+        let mut t = 0;
+
+
+        g.add_node((t,xp));
+        g.add_node((t+1,xf));
+        
+       
+      
+        for spatial_slice in self.slabs.clone() {
+            let n = spatial_slice.ones() as i32;
+            let m = spatial_slice.zeros() as i32;
+            for triangle in spatial_slice {
+                if !triangle {
+                    xf+=1;
+                    xf = xf.rem_euclid(n);
+
+                    
+                    g.add_node((xf,t+1));
+
+                    g.add_directed_edge((xf,t), (xp,t+1));
+                    g.add_directed_edge(((xf-1).rem_euclid(n),t), (xp,t+1));
+
+                }
+                else {
+                    
+                    xp+=1;
+                    xp = xp.rem_euclid(m);
+
+                    g.add_node((xp,t));
+
+                    
+                    g.add_directed_edge((xf,t), ((xp-1).rem_euclid(m),t+1));
+                    g.add_directed_edge((xf,t), (xp,t+1));
+                    
+                }
+
+            }
+            t+=1;
+        }
+
+        g
+    }
+
+}
 
 // display a CDT as a vertical stack of slabs
 impl std::fmt::Display for CDT {
