@@ -50,7 +50,7 @@ impl CDT {
     }
 
     pub fn number_of_triangles(&self) -> usize {
-        2*self.slabs.iter().fold(0, |acc, x| acc + x.ones())
+        2 * self.slabs.iter().fold(0, |acc, x| acc + x.ones())
     }
 
     pub fn random_triangle(&self) -> (usize, usize) {
@@ -143,54 +143,56 @@ impl CDT {
         true
     }
 
-    pub fn to_graph(&self) -> grafferous::Graph<(i32,i32),()> {
-        let mut g = grafferous::Graph::<(i32,i32),()>::new();
+    pub fn to_graph(&self) -> grafferous::Graph<(i32, i32), ()> {
+        let mut g = grafferous::Graph::<(i32, i32), ()>::new();
 
-        let mut xf = 0;
         let mut xp = 0;
+        let mut xf = 0;
         let mut t = 0;
 
+        g.add_node((t, xf));
+        g.add_node((t + 1, xp));
 
-        g.add_node((t,xp));
-        g.add_node((t+1,xf));
-        
-       
-      
+        let time_size = self.slabs.len() as i32;
+
         for spatial_slice in self.slabs.clone() {
             let n = spatial_slice.ones() as i32;
             let m = spatial_slice.zeros() as i32;
             for triangle in spatial_slice {
-                if !triangle {
-                    xf+=1;
-                    xf = xf.rem_euclid(n);
-
-                    
-                    g.add_node((xf,t+1));
-
-                    g.add_directed_edge((xf,t), (xp,t+1));
-                    g.add_directed_edge(((xf-1).rem_euclid(n),t), (xp,t+1));
-
+                if triangle {
+                    xp += 1;
+                    xp = xp.rem_euclid(n);
+                    g.add_directed_edge((t, xp), ((t + 1).rem_euclid(time_size), xf));
+                } else {
+                    xf += 1;
+                    xf = xf.rem_euclid(m);
+                    g.add_directed_edge((t, xp), ((t + 1).rem_euclid(time_size), xf));
                 }
-                else {
-                    
-                    xp+=1;
-                    xp = xp.rem_euclid(m);
-
-                    g.add_node((xp,t));
-
-                    
-                    g.add_directed_edge((xf,t), ((xp-1).rem_euclid(m),t+1));
-                    g.add_directed_edge((xf,t), (xp,t+1));
-                    
-                }
-
             }
-            t+=1;
+            t += 1;
         }
 
         g
     }
 
+    pub fn time_size(&self) -> usize {
+        self.slabs.len()
+    }
+
+    pub fn spatial_multiplicity(&self) -> usize {
+        // gives the number of different representations that corespond to the same physical triangulation.
+
+        //create a graph
+        let g = self.to_graph();
+
+        //for each node in the first row of the graph count the number of paths back to that node
+        let mut result = 0;
+        for node in g.nodes.clone() {
+            result += grafferous::count_paths(&g, &node, &node, Some(self.time_size()));
+        }
+
+        result
+    }
 }
 
 // display a CDT as a vertical stack of slabs

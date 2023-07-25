@@ -4,7 +4,7 @@ use rand::Rng;
 const LAMBDA: f64 = 0.69314718056;
 pub trait Move {
     // Method signatures; these will return a string.
-    fn acceptance_ratio(&self,cdt: &CDT) -> f64;
+    fn acceptance_ratio(&self, cdt: &CDT) -> f64;
     fn is_possible(&self, cdt: &CDT, location: (usize, usize)) -> bool;
     fn execute(&self, cdt: &mut CDT, location: (usize, usize)) -> ();
     fn random_valid_position(&self, cdt: &CDT) -> (usize, usize);
@@ -22,7 +22,7 @@ pub trait Move {
         }
 
         self.execute(cdt, position);
-        return true
+        return true;
     }
 
     fn trial_execute(&self, cdt: &CDT, location: (usize, usize)) -> CDT {
@@ -39,7 +39,7 @@ pub trait Move {
 
 pub struct DecreaseMove;
 
-//this isnt a 42 move its a merge move. 
+//this isnt a 42 move its a merge move.
 pub struct IncreaseMove;
 pub struct ParityMove;
 
@@ -49,12 +49,11 @@ impl Move for DecreaseMove {
     }
 
     fn acceptance_ratio(&self, cdt: &CDT) -> f64 {
-        let N0 = (cdt.number_of_triangles()/2) as f64;
-        let possible = (N0+1.0)/N0*f64::exp(2.0*LAMBDA);
+        let N0 = (cdt.number_of_triangles() / 2) as f64;
+        let possible = (N0 + 1.0) / N0 * f64::exp(2.0 * LAMBDA);
 
         //possible or 1
         possible.min(1.0)
-
     }
 
     fn is_possible(&self, cdt: &CDT, location: (usize, usize)) -> bool {
@@ -91,11 +90,10 @@ impl Move for IncreaseMove {
 
     fn acceptance_ratio(&self, cdt: &CDT) -> f64 {
         let N0 = (cdt.number_of_triangles()) as f64;
-        let possible = N0/(N0+1.0)*f64::exp(-2.0*LAMBDA);
+        let possible = N0 / (N0 + 1.0) * f64::exp(-2.0 * LAMBDA);
 
         //possible or 1
         possible.min(1.0)
-
     }
 
     fn is_possible(&self, cdt: &CDT, location: (usize, usize)) -> bool {
@@ -137,7 +135,7 @@ impl Move for ParityMove {
         cdt.random_transition_triangle()
     }
 
-    fn acceptance_ratio(&self, cdt:&CDT) -> f64 {
+    fn acceptance_ratio(&self, cdt: &CDT) -> f64 {
         1.0
     }
 
