@@ -2,7 +2,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 // import the crate im in for  benchmarking
-use cdt_rust;
 
 fn benchmark_slab(c: &mut Criterion) {
     let a = cdt_rust::Slab::new(vec![true; 128]);
@@ -23,8 +22,6 @@ fn benchmark_slab(c: &mut Criterion) {
         })
     });
 }
-
-
 
 fn benchmark_count(c: &mut Criterion) {
     //use rayon to count the elements in the iterator

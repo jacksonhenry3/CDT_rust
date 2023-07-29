@@ -1,13 +1,7 @@
-use cdt_rust::r#move::{DecreaseMove, IncreaseMove, Move, ParityMove};
-use cdt_rust::slab::{self, all_slabs};
-use cdt_rust::{action, cdt_iterator, Slab};
-use cdt_rust::{cdt::CDT, deficite_angle, number_of_triangles_arround_a_node};
-use grafferous;
-use itertools::Itertools;
-use rand::prelude::*;
-use rand::{thread_rng, Rng};
+//ignor unused
+#![allow(unused)]
 
-
+use cdt_rust::{action, cdt::CDT};
 
 fn main() {
     let random_cdt = CDT::random(vec![32; 32]);
@@ -30,7 +24,7 @@ fn tuple_to_mathematica_format(t: (i32, i32)) -> String {
     format!("{{{},{}}}", t.0, t.1)
 }
 
-fn graph_to_mathematica_format(graph: grafferous::Graph<(i32, i32), ()>) -> () {
+fn graph_to_mathematica_format(graph: grafferous::Graph<(i32, i32), ()>) {
     let mut result = String::new();
     result.push_str("Graph[{");
 

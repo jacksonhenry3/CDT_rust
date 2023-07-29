@@ -42,7 +42,7 @@ impl Slab {
     pub fn get_triangle_index(&self, space_index: usize) -> usize {
         // assert!(space_index < self.length, "index out of bounds");
         //if the triangle is a zero type count the number of zeros in the slab to the left of the triangle using sum_binary_digit_range
-        if self[space_index] == false {
+        if !self[space_index] {
             sum_binary_digit_range(!self.data, 0, space_index)
         } else {
             sum_binary_digit_range(self.data, 0, space_index)

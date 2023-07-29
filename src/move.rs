@@ -1,12 +1,12 @@
 use crate::cdt::CDT;
 use rand::Rng;
 
-const LAMBDA: f64 = 0.69314718056;
+const LAMBDA: f64 = std::f64::consts::LN_2;
 pub trait Move {
     // Method signatures; these will return a string.
     fn acceptance_ratio(&self, cdt: &CDT) -> f64;
     fn is_possible(&self, cdt: &CDT, location: (usize, usize)) -> bool;
-    fn execute(&self, cdt: &mut CDT, location: (usize, usize)) -> ();
+    fn execute(&self, cdt: &mut CDT, location: (usize, usize));
     fn random_valid_position(&self, cdt: &CDT) -> (usize, usize);
 
     // Traits can provide default method definitions.
@@ -22,7 +22,7 @@ pub trait Move {
         }
 
         self.execute(cdt, position);
-        return true;
+        true
     }
 
     fn trial_execute(&self, cdt: &CDT, location: (usize, usize)) -> CDT {
@@ -49,8 +49,8 @@ impl Move for DecreaseMove {
     }
 
     fn acceptance_ratio(&self, cdt: &CDT) -> f64 {
-        let N0 = (cdt.number_of_triangles() / 2) as f64;
-        let possible = (N0 + 1.0) / N0 * f64::exp(2.0 * LAMBDA);
+        let n0 = (cdt.number_of_triangles() / 2) as f64;
+        let possible = (n0 + 1.0) / n0 * f64::exp(2.0 * LAMBDA);
 
         //possible or 1
         possible.min(1.0)
@@ -73,7 +73,7 @@ impl Move for DecreaseMove {
         true
     }
 
-    fn execute(&self, cdt: &mut CDT, location: (usize, usize)) -> () {
+    fn execute(&self, cdt: &mut CDT, location: (usize, usize)) {
         let (time_index, space_index) = location;
         let (other_time_index, other_space_index) = cdt.get_temporal_pair(time_index, space_index);
 
@@ -89,8 +89,8 @@ impl Move for IncreaseMove {
     }
 
     fn acceptance_ratio(&self, cdt: &CDT) -> f64 {
-        let N0 = (cdt.number_of_triangles()) as f64;
-        let possible = N0 / (N0 + 1.0) * f64::exp(-2.0 * LAMBDA);
+        let n0 = (cdt.number_of_triangles()) as f64;
+        let possible = n0 / (n0 + 1.0) * f64::exp(-2.0 * LAMBDA);
 
         //possible or 1
         possible.min(1.0)
@@ -109,7 +109,7 @@ impl Move for IncreaseMove {
         true
     }
 
-    fn execute(&self, cdt: &mut CDT, location: (usize, usize)) -> () {
+    fn execute(&self, cdt: &mut CDT, location: (usize, usize)) {
         let (time_index, space_index) = location;
         let (other_time_index, other_space_index) = cdt.get_temporal_pair(time_index, space_index);
 
@@ -135,7 +135,7 @@ impl Move for ParityMove {
         cdt.random_transition_triangle()
     }
 
-    fn acceptance_ratio(&self, cdt: &CDT) -> f64 {
+    fn acceptance_ratio(&self, _cdt: &CDT) -> f64 {
         1.0
     }
 
@@ -143,7 +143,7 @@ impl Move for ParityMove {
         true
     }
 
-    fn execute(&self, cdt: &mut CDT, location: (usize, usize)) -> () {
+    fn execute(&self, cdt: &mut CDT, location: (usize, usize)) {
         let (time_index, space_index) = location;
         let other_space_index = (space_index + 1) % cdt.slabs[time_index].length;
 

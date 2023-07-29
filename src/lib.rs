@@ -58,23 +58,18 @@ pub fn cdt_iterator(volume_profile: Vec<u32>) -> impl Iterator<Item = CDT> {
     }
 
     let mut current_slabs = vec![];
-    for i in 0..volume_profile.len() {
-        current_slabs.push(slab_iterators[i].next().unwrap());
+    for slab in &mut slab_iterators {
+        current_slabs.push(slab.next().unwrap());
     }
 
-    slab_iterators[0] = all_slabs(
-        volume_profile[volume_profile.len() - 1],
-        volume_profile[0],
-    );
-
+    slab_iterators[0] = all_slabs(volume_profile[volume_profile.len() - 1], volume_profile[0]);
 
     std::iter::from_fn(move || {
         for i in 0..volume_profile.len() {
-            let slab = slab_iterators[i].next();
+            let slab_option = slab_iterators[i].next();
 
-
-            if slab.is_some() {
-                current_slabs[i] = slab.unwrap();
+            if let Some(slab) = slab_option {
+                current_slabs[i] = slab;
                 break;
             } else {
                 if i == volume_profile.len() - 1 {
@@ -92,15 +87,14 @@ pub fn cdt_iterator(volume_profile: Vec<u32>) -> impl Iterator<Item = CDT> {
     })
 }
 
-
-pub fn action(cdt:&CDT) -> f64 {
-    //calculate the einstien hilbert action of the cdt 
+pub fn action(cdt: &CDT) -> f64 {
+    //calculate the einstien hilbert action of the cdt
     let mut result = 0.0;
 
     //sum the deficite angles of all nodes
     for time_index in 0..cdt.slabs.len() {
         for space_index in 0..cdt.slabs[time_index].length {
-            result += deficite_angle(&cdt, time_index, space_index);
+            result += deficite_angle(cdt, time_index, space_index);
         }
     }
 

@@ -1,12 +1,8 @@
-use std::option;
-
 use crate::slab::Slab;
 use grafferous;
 
 //import slab
-use crate::slab::all_slabs;
 
-use itertools::Itertools;
 use rand::seq::SliceRandom;
 use rand::Rng;
 /// A CDT is a sequence of slabs, where the last slab is connected to the first slab.
@@ -17,7 +13,7 @@ pub struct CDT {
 
 impl CDT {
     pub fn new(slabs: Vec<Slab>) -> CDT {
-        CDT { slabs: slabs }
+        CDT { slabs }
     }
 
     pub fn random(volume_profile: Vec<u8>) -> CDT {
@@ -151,16 +147,13 @@ impl CDT {
     pub fn to_graph(&self) -> grafferous::Graph<(i32, i32), ()> {
         let mut g = grafferous::Graph::<(i32, i32), ()>::new();
 
-        let mut xp = 0;
-        let mut xf = 0;
-        let mut t = 0;
-
-        g.add_node((t, xf));
-        g.add_node((t + 1, xp));
+        let mut xp: i32 = 0;
+        let mut xf: i32 = 0;
 
         let time_size = self.slabs.len() as i32;
 
-        for spatial_slice in self.slabs.clone() {
+        for (t, spatial_slice) in self.slabs.iter().enumerate() {
+            let t = t as i32;
             let n = spatial_slice.ones() as i32;
             let m = spatial_slice.zeros() as i32;
             for triangle in spatial_slice {
@@ -174,7 +167,6 @@ impl CDT {
                     g.add_directed_edge((t, xp), ((t + 1).rem_euclid(time_size), xf));
                 }
             }
-            t += 1;
         }
 
         g
@@ -205,7 +197,7 @@ impl std::fmt::Display for CDT {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let reverse_slabs = self.slabs.clone().into_iter().rev();
         for slab in reverse_slabs {
-            write!(f, "{}\n", slab)?;
+            writeln!(f, "{}", slab)?;
         }
         Ok(())
     }
