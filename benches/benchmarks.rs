@@ -1,5 +1,6 @@
 #![allow(unused)]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
+
 // import the crate im in for  benchmarking
 use cdt_rust;
 
@@ -23,6 +24,18 @@ fn benchmark_slab(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, benchmark_slab);
+
+
+fn benchmark_count(c: &mut Criterion) {
+    //use rayon to count the elements in the iterator
+    c.bench_function("count", |b| {
+        b.iter(|| {
+            let mut a = cdt_rust::cdt_iterator(vec![3; 4]);
+            let count = a.filter(|x| x.volume_profile()[0] == (3, 3)).count();
+        })
+    });
+}
+
+criterion_group!(benches, benchmark_count);
 
 criterion_main!(benches);

@@ -1,30 +1,29 @@
 use cdt_rust::r#move::{DecreaseMove, IncreaseMove, Move, ParityMove};
+use cdt_rust::slab::{self, all_slabs};
+use cdt_rust::{action, cdt_iterator, Slab};
 use cdt_rust::{cdt::CDT, deficite_angle, number_of_triangles_arround_a_node};
 use grafferous;
-
+use itertools::Itertools;
+use rand::prelude::*;
 use rand::{thread_rng, Rng};
 
+
+
 fn main() {
-    let mut cdt = CDT::random(vec![6;6]);
-    // let mut cdt = CDT::new_flat(4,10);
+    let random_cdt = CDT::random(vec![32; 32]);
 
-    // IncreaseMove.execute(&mut cdt, (5,5));
-    let g = cdt.to_graph();
-    graph_to_mathematica_format(g.clone());
-
-
-
-    let num_paths = spatial_multiplicity(&cdt);
-    println!("num_paths: {}", num_paths);
+    let s = action(&random_cdt);
+    println!("action: {}", s);
 }
 
 fn spatial_multiplicity(cdt: &CDT) -> i32 {
-
     let g = cdt.to_graph();
     //get all nodes that have 0 time coordinate
     let nodes = g.nodes.iter().filter(|n| n.0 == 0);
     //sum all circuit starting at each node using an iterator map
-    nodes.map(|n| grafferous::find_circuits(&g, n, 10).len() as i32).sum()
+    nodes
+        .map(|n| grafferous::find_circuits(&g, n, 32).len() as i32)
+        .sum()
 }
 
 fn tuple_to_mathematica_format(t: (i32, i32)) -> String {

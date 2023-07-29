@@ -1,9 +1,14 @@
+use std::option;
+
 use crate::slab::Slab;
 use grafferous;
 
+//import slab
+use crate::slab::all_slabs;
+
+use itertools::Itertools;
 use rand::seq::SliceRandom;
 use rand::Rng;
-
 /// A CDT is a sequence of slabs, where the last slab is connected to the first slab.
 #[derive(Debug, Eq, PartialOrd, Ord, Clone, PartialEq, Hash)]
 pub struct CDT {

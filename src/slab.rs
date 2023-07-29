@@ -182,3 +182,33 @@ impl<'a> IntoIterator for &'a Slab {
         self.to_vec().into_iter()
     }
 }
+
+/// Generates all possible slabs (combinations of ones and zeros) of a certain length.
+///
+/// This function generates an iterator over all possible combinations of ones and zeros
+/// of a certain length, where the number of ones and zeros is specified by the parameters.
+/// The iterator yields `Slab` objects, where each `Slab` represents one possible combination.
+///
+/// # Parameters
+///
+/// * `num_ones`: The number of ones in the slab.
+/// * `num_zeros`: The number of zeros in the slab.
+///
+/// # Returns
+///
+/// An iterator over `Slab` objects, where each `Slab` represents one possible combination
+/// of ones and zeros of the specified length.
+pub fn all_slabs(num_ones: u32, num_zeros: u32) -> impl Iterator<Item = Slab> {
+    let length = num_ones + num_zeros;
+
+    (0..2u128.pow(length))
+        .filter(move |x| x.count_ones() == num_ones)
+        .map(move |x| Slab {
+            data: x,
+            length: length as usize,
+        })
+}
+
+pub fn print_type_of<T>(_: &T) {
+    println!("{}", std::any::type_name::<T>())
+}
