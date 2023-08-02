@@ -144,6 +144,7 @@ impl CDT {
         }
         result
     }
+    
     pub fn is_valid(&self) -> bool {
         //check that each past sslab has the same number of ones as its corresponding future slab has zeros
         for (i, slab) in self.slabs.iter().enumerate() {
@@ -200,6 +201,24 @@ impl CDT {
         }
 
         result
+    }
+
+    pub fn temporal_multiplicity(&self) -> usize {
+        //check for a repeating pattern of slabs of length T/2 or less by shifting each slab in the cdt by 1 and checking if it is equal to the original cdt
+        for shift in 1..=self.time_size() / 2 {
+            let mut rotated_slabs = self.slabs.clone();
+            rotated_slabs.rotate_right(shift);
+            if self.slabs == rotated_slabs {
+                match shift {
+                    1 => return 1,
+                    2 => return 2,
+                    _ => return 2 * shift,
+                }
+            }
+        }
+
+        2*self.time_size()
+
     }
 }
 
