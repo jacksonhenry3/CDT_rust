@@ -208,7 +208,3 @@ pub fn all_slabs(num_ones: u32, num_zeros: u32) -> impl Iterator<Item = Slab> {
             length: length as usize,
         })
 }
-
-pub fn print_type_of<T>(_: &T) {
-    println!("{}", std::any::type_name::<T>())
-}

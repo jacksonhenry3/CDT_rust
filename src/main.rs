@@ -1,45 +1,67 @@
-//ignor unused
 #![allow(unused)]
-
 use cdt_rust::{action, cdt::CDT};
+use rayon::prelude::*;
+
+
+
+fn get_random_action() -> (CDT, f64){
+    let random_cdt = CDT::random(vec![32;32]);
+    let s = action(&random_cdt);
+    (random_cdt, s)
+}
 
 fn main() {
-    let random_cdt = CDT::random(vec![32; 32]);
 
-    let s = action(&random_cdt);
-    println!("action: {}", s);
-}
+    // println!("Hello, world!");
+    // for i in (0..10_000){
+    //     get_random_action();
+    // }
 
-fn spatial_multiplicity(cdt: &CDT) -> i32 {
-    let g = cdt.to_graph();
-    //get all nodes that have 0 time coordinate
-    let nodes = g.nodes.iter().filter(|n| n.0 == 0);
-    //sum all circuit starting at each node using an iterator map
-    nodes
-        .map(|n| grafferous::find_circuits(&g, n, 32).len() as i32)
-        .sum()
-}
+    println!("Middle");
 
-fn tuple_to_mathematica_format(t: (i32, i32)) -> String {
-    format!("{{{},{}}}", t.0, t.1)
-}
-
-fn graph_to_mathematica_format(graph: grafferous::Graph<(i32, i32), ()>) {
-    let mut result = String::new();
-    result.push_str("Graph[{");
-
-    for (from, tos) in graph.edges {
-        for to in tos {
-            result.push_str(&format!(
-                "{}->{},",
-                tuple_to_mathematica_format(from),
-                tuple_to_mathematica_format(to)
-            ));
+    //now with rayon
+    let a = (0..1_000_000).into_par_iter().map(|_| get_random_action());
+    let b = a.collect::<Vec<(CDT, f64)>>();
+    
+    //find the max of b 
+    let mut max = -10000.0;
+    let mut max_cdt = CDT::random(vec![32;32]);
+    let mut i = 0;
+    for (cdt, s) in b.clone(){
+        i += 1;
+        if i%10000 == 0{
+            println!("i: {}", i);
+        }
+        if s > max{
+            max = s;
+            max_cdt = cdt;
         }
     }
-    //remove the last comma
-    result.pop();
+    
 
-    result.push_str("}]");
-    println!("{}", result);
+    println!("Max: {}", max);
+    println!("Max CDT: {}", max_cdt);
+
+    //and min
+    let mut min = 10000.0;
+    let mut min_cdt = CDT::random(vec![32;32]);
+    let mut i = 0;
+
+    for (cdt, s) in b{
+        i += 1;
+        if i%10000 == 0{
+            println!("i: {}", i);
+        }
+        if s < min{
+            min = s;
+            min_cdt = cdt;
+        }
+    }
+
+    println!("Min: {}", min);
+    println!("Min CDT: {}", min_cdt);
+    
+
+    println!("End");
+    
 }

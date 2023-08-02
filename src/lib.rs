@@ -1,7 +1,6 @@
 pub mod cdt;
-pub mod r#move;
 pub mod slab;
-
+pub mod utils;
 use cdt::CDT;
 
 pub use slab::Slab;
@@ -14,20 +13,49 @@ pub fn number_of_triangles_arround_a_node(
     space_index: usize,
 ) -> usize {
     let mut result = 4;
-    //get the temporal pair of the node
-    let (other_time_index, other_space_index) = cdt.get_temporal_pair(time_index, space_index);
 
-    //count the number of spatial neighbors to the right are of a different type
-    let mut next_space_index = (space_index + 1) % cdt.slabs[time_index].length;
-    while cdt[time_index][next_space_index] != cdt[time_index][space_index] {
-        result += 1;
-        next_space_index = (next_space_index + 1) % cdt.slabs[time_index].length;
+    fn next_index(space_index: usize, space_size: usize) -> Option<usize> {
+        //return if the next space index is less than or equal to space size
+        if space_index < space_size {
+            Some(space_index + 1)
+        } else {
+            None
+        }
     }
 
-    let mut next_space_index = (other_space_index + 1) % cdt.slabs[other_time_index].length;
-    while cdt[other_time_index][next_space_index] != cdt[other_time_index][other_space_index] {
+    //count the number of spatial neighbors to the right are of a different type
+    let space_size = cdt.slabs[time_index].length;
+    let mut next_space_index_option = next_index(space_index, space_size);
+
+    while let Some(next_space_index) = next_space_index_option {
+        if cdt[time_index][next_space_index] == cdt[time_index][space_index] {
+            break;
+        }
+
         result += 1;
-        next_space_index = (next_space_index + 1) % cdt.slabs[other_time_index].length;
+        next_space_index_option = next_index(next_space_index, space_size);
+    }
+
+    if next_space_index_option.is_none() {
+        result -= 1;
+    }
+
+    //get the temporal pair of the node
+    if let Some((other_time_index, other_space_index)) =
+        cdt.get_temporal_pair(time_index, space_index)
+    {
+        let other_space_size = cdt.slabs[other_time_index].length;
+        let mut other_next_space_index_option = next_index(other_space_index, other_space_size);
+
+        while let Some(other_next_space_index) = other_next_space_index_option {
+            if cdt[other_time_index][other_next_space_index]
+                == cdt[other_time_index][other_space_index]
+            {
+                break;
+            }
+            result += 1;
+            other_next_space_index_option = next_index(other_next_space_index, other_space_size);
+        }
     }
 
     result

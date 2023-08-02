@@ -82,16 +82,27 @@ impl CDT {
         slab.get_triangle_index(space_index)
     }
 
-    pub fn get_temporal_pair(&self, time_index: usize, space_index: usize) -> (usize, usize) {
+    pub fn get_temporal_pair(
+        &self,
+        time_index: usize,
+        space_index: usize,
+    ) -> Option<(usize, usize)> {
         let slab = &self.slabs[time_index];
         let triangle = slab[space_index];
         let triangle_index = slab.get_triangle_index(space_index);
 
         let other_time_index = if triangle {
-            (time_index + self.slabs.len() - 1) % self.slabs.len()
+            (time_index - 1) as i32
         } else {
-            (time_index + 1) % self.slabs.len()
+            (time_index + 1) as i32
         };
+
+        if other_time_index >= self.slabs.len() as i32 || other_time_index < 0 {
+            return None;
+        }
+
+        let other_time_index = other_time_index as usize;
+
         let other_slab = &self.slabs[other_time_index];
 
         let other_space_index = other_slab.get_triangle_in_slab_by_index(triangle_index, !triangle);
@@ -99,7 +110,7 @@ impl CDT {
         //assert that the other triangle is a differnt type as the original triangle
         assert_ne!(triangle, other_slab[other_space_index]);
 
-        (other_time_index, other_space_index)
+        Some((other_time_index, other_space_index))
     }
 
     pub fn all_transition_triangles(&self) -> Vec<(usize, usize)> {
