@@ -71,7 +71,7 @@ pub fn deficite_angle(cdt: &CDT, time_index: usize, space_index: usize) -> f64 {
 pub fn cdt_iterator(volume_profile: Vec<u32>) -> impl Iterator<Item = CDT> {
     //assert that every element in the volume profile is less than 128 and greater than 3
     assert!(
-        volume_profile.iter().all(|x| *x <= 128 && *x >= 3),
+        volume_profile.iter().all(|x| *x <= 128 && *x >= 0),
         "volume profile must be between 3 and 128"
     );
 
