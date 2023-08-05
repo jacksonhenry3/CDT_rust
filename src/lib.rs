@@ -7,64 +7,95 @@ pub use slab::Slab;
 
 use crate::slab::all_slabs;
 
+#[derive(Debug, Eq, PartialOrd, Ord, Clone, PartialEq, Hash,Copy)]
+pub enum Direction {
+    Left,
+    Right,
+}
+
 pub fn number_of_triangles_arround_a_node(
     cdt: &CDT,
     time_index: usize,
     space_index: usize,
-) -> usize {
-    let mut result = 4;
+    direction: Direction,
 
-    fn next_index(space_index: usize, space_size: usize) -> Option<usize> {
+) -> usize {
+    //TODO this should probs change.
+    let mut result = 2;
+
+    let next_index = |space_index: usize, space_size: usize| -> Option<usize> {
         //return if the next space index is less than or equal to space size
-        if space_index < space_size {
-            Some(space_index + 1)
-        } else {
-            None
+        match direction {
+            Direction::Left => {
+                if space_index > 0 {
+                    Some(space_index - 1)
+                } else {
+                    None
+                }
+            }
+            Direction::Right => {
+                if space_index < space_size-1 {
+                    Some(space_index + 1)
+                } else {
+                    None
+                }
+            }
         }
-    }
+    };
+    
+
 
     //count the number of spatial neighbors to the right are of a different type
     let space_size = cdt.slabs[time_index].length;
     let mut next_space_index_option = next_index(space_index, space_size);
 
     while let Some(next_space_index) = next_space_index_option {
+        // println!("next_space_index: {} {}", time_index, next_space_index);
+       
+
+        result += 1;
         if cdt[time_index][next_space_index] == cdt[time_index][space_index] {
             break;
         }
-
-        result += 1;
         next_space_index_option = next_index(next_space_index, space_size);
     }
 
-    if next_space_index_option.is_none() {
-        result -= 1;
-    }
+    
 
     //get the temporal pair of the node
-    if let Some((other_time_index, other_space_index)) =
-        cdt.get_temporal_pair(time_index, space_index)
-    {
-        let other_space_size = cdt.slabs[other_time_index].length;
-        let mut other_next_space_index_option = next_index(other_space_index, other_space_size);
+    let (other_time_index, other_space_index) = cdt.get_temporal_pair(time_index, space_index);
 
-        while let Some(other_next_space_index) = other_next_space_index_option {
-            if cdt[other_time_index][other_next_space_index]
-                == cdt[other_time_index][other_space_index]
-            {
-                break;
-            }
-            result += 1;
-            other_next_space_index_option = next_index(other_next_space_index, other_space_size);
+    let other_space_size = cdt.slabs[other_time_index].length;
+    let mut other_next_space_index_option = next_index(other_space_index, other_space_size);
+
+    while let Some(other_next_space_index) = other_next_space_index_option {
+        // println!("next_space_index: {} {}", other_time_index, other_next_space_index);
+        
+        result += 1;
+        if cdt[other_time_index][other_next_space_index] == cdt[other_time_index][other_space_index]
+        {
+            break;
         }
+        other_next_space_index_option = next_index(other_next_space_index, other_space_size);
     }
 
     result
 }
 
 // deficite angle
-pub fn deficite_angle(cdt: &CDT, time_index: usize, space_index: usize) -> f64 {
-    let number_of_edges = number_of_triangles_arround_a_node(cdt, time_index, space_index);
-    ((number_of_edges as i64 - 6) as f64) * std::f64::consts::PI / 3.0
+pub fn deficite_angle(cdt: &CDT, time_index: usize, space_index: usize, side:Direction) -> f64 {
+    let number_of_edges = number_of_triangles_arround_a_node(cdt, time_index, space_index,side);
+    let mut expected_number_of_edges = 6;
+    //figure out if the node is on spatial or temporal boundary
+    let is_spatial_boundary = cdt.slabs[time_index].is_boundary(space_index,side);
+
+    if is_spatial_boundary {
+        expected_number_of_edges = 3;
+    }
+
+    println!("{} {} {:?}", number_of_edges, is_spatial_boundary, side);
+
+    ((number_of_edges as i64 - expected_number_of_edges) as f64) // * std::f64::consts::PI / 3.0
 }
 
 //create a cdt iterator that iterates over all possible cdt with a given volume profile using slab_iterator
@@ -120,9 +151,16 @@ pub fn action(cdt: &CDT) -> f64 {
     let mut result = 0.0;
 
     //sum the deficite angles of all nodes
-    for time_index in 0..cdt.slabs.len() {
-        for space_index in 0..cdt.slabs[time_index].length {
-            result += deficite_angle(cdt, time_index, space_index);
+    for (time_index, space_index, _value) in cdt
+        .triangles()
+        .into_iter()
+        .filter(|(_x, _t, value)| *value == true)
+    {
+        result += deficite_angle(cdt, time_index, space_index, Direction::Right); 
+
+        let triangle_index = cdt.get_triangle_index(time_index, space_index);
+        if triangle_index == 0 {
+            result += deficite_angle(cdt, time_index, space_index, Direction::Left);
         }
     }
 

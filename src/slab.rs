@@ -1,9 +1,4 @@
-//macro for printing a digit at a given length
-macro_rules! format_digit {
-    ($digit:expr, $length:expr) => {
-        format!("{:0width$b}", $digit, width = $length)
-    };
-}
+use crate::Direction;
 
 /// A slab is a sequence of 1s and 0s, where the 1s represent upwards pointing triangles and the 0s represent downwards pointing triangles.
 #[derive(Debug, Eq, PartialOrd, Ord, Clone, PartialEq, Hash)]
@@ -114,6 +109,32 @@ impl Slab {
         }
         result
     }
+
+    pub fn is_boundary(&self, index: usize, side: Direction) -> bool {
+
+        let triangle_index = self.get_triangle_index(index);
+        
+        // use triangle index not space index
+        match side {
+            Direction::Left => {
+                if triangle_index == 0 {
+                    return true;
+                }
+                else{
+                    false
+                }
+            }
+            Direction::Right => {
+                if triangle_index == self.ones() - 1 {
+                    return true;
+                }
+                else{
+                    false
+                }
+            }
+        }
+
+    }
 }
 
 //impl Index
@@ -133,7 +154,14 @@ impl std::ops::Index<usize> for Slab {
 // display a slab as a string of 1s and 0s
 impl std::fmt::Display for Slab {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let v = format_digit!(self.data, self.length);
+        let mut v = String::new();
+        for value in self {
+            if value {
+                v.push('△');
+            } else {
+                v.push('▽');
+            }
+        }
         write!(f, "{}", v)
     }
 }
@@ -186,7 +214,7 @@ impl<'a> IntoIterator for &'a Slab {
 /// Generates all possible slabs (combinations of ones and zeros) of a certain length.
 ///
 /// This function generates an iterator over all possible combinations of ones and zeros
-/// of a certain length, where the number of ones and zeros is specified by the parameters.
+/// of a certain length, where the number of o nes and zeros is specified by the parameters.
 /// The iterator yields `Slab` objects, where each `Slab` represents one possible combination.
 ///
 /// # Parameters

@@ -28,7 +28,7 @@ fn benchmark_count(c: &mut Criterion) {
     c.bench_function("count", |b| {
         b.iter(|| {
             let mut a = cdt_rust::cdt_iterator(vec![3; 4]);
-            let count = a.filter(|x| x.volume_profile()[0] == (3, 3)).count();
+            let count = a.filter(|x| x.volume_profile()[0] == 3).count();
         })
     });
 }

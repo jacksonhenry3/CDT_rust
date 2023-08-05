@@ -82,26 +82,16 @@ impl CDT {
         slab.get_triangle_index(space_index)
     }
 
-    pub fn get_temporal_pair(
-        &self,
-        time_index: usize,
-        space_index: usize,
-    ) -> Option<(usize, usize)> {
+    pub fn get_temporal_pair(&self, time_index: usize, space_index: usize) -> (usize, usize) {
         let slab = &self.slabs[time_index];
         let triangle = slab[space_index];
         let triangle_index = slab.get_triangle_index(space_index);
 
         let other_time_index = if triangle {
-            (time_index - 1) as i32
+            (time_index - 1 + self.time_size()).rem_euclid(self.time_size())
         } else {
-            (time_index + 1) as i32
+            (time_index + 1).rem_euclid(self.time_size())
         };
-
-        if other_time_index >= self.slabs.len() as i32 || other_time_index < 0 {
-            return None;
-        }
-
-        let other_time_index = other_time_index as usize;
 
         let other_slab = &self.slabs[other_time_index];
 
@@ -110,7 +100,7 @@ impl CDT {
         //assert that the other triangle is a differnt type as the original triangle
         assert_ne!(triangle, other_slab[other_space_index]);
 
-        Some((other_time_index, other_space_index))
+        (other_time_index, other_space_index)
     }
 
     pub fn all_transition_triangles(&self) -> Vec<(usize, usize)> {
@@ -144,7 +134,7 @@ impl CDT {
         }
         result
     }
-    
+
     pub fn is_valid(&self) -> bool {
         //check that each past sslab has the same number of ones as its corresponding future slab has zeros
         for (i, slab) in self.slabs.iter().enumerate() {
@@ -217,8 +207,7 @@ impl CDT {
             }
         }
 
-        2*self.time_size()
-
+        2 * self.time_size()
     }
 }
 
