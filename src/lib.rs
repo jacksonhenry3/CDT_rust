@@ -13,7 +13,7 @@ pub enum Direction {
     Right,
 }
 
-pub fn number_of_triangles_arround_a_node(
+pub fn number_of_edges_arround_a_node(
     cdt: &CDT,
     time_index: usize,
     space_index: usize,
@@ -60,6 +60,10 @@ pub fn number_of_triangles_arround_a_node(
         next_space_index_option = next_index(next_space_index, space_size);
     }
 
+    if next_space_index_option.is_none() {
+        result += 1;
+    }
+
     
 
     //get the temporal pair of the node
@@ -79,21 +83,24 @@ pub fn number_of_triangles_arround_a_node(
         other_next_space_index_option = next_index(other_next_space_index, other_space_size);
     }
 
+    // if other_next_space_index_option.is_none() {
+    //     result += 1;
+    // }
+
     result
 }
 
 // deficite angle
 pub fn deficite_angle(cdt: &CDT, time_index: usize, space_index: usize, side:Direction) -> f64 {
-    let number_of_edges = number_of_triangles_arround_a_node(cdt, time_index, space_index,side);
+    let number_of_edges = number_of_edges_arround_a_node(cdt, time_index, space_index,side);
     let mut expected_number_of_edges = 6;
     //figure out if the node is on spatial or temporal boundary
     let is_spatial_boundary = cdt.slabs[time_index].is_boundary(space_index,side);
 
     if is_spatial_boundary {
-        expected_number_of_edges = 3;
+        expected_number_of_edges = 4;
     }
 
-    println!("{} {} {:?}", number_of_edges, is_spatial_boundary, side);
 
     ((number_of_edges as i64 - expected_number_of_edges) as f64) // * std::f64::consts::PI / 3.0
 }

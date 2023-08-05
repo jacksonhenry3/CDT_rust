@@ -12,8 +12,8 @@ fn get_random_action() -> (CDT, f64){
 
 fn main() {
 
-    let mut cdt = CDT::new_flat(3,3);
+    let mut cdt = CDT::new_flat(32,32);
     let mut s = action(&cdt);
-    // println!("s: {}", s);
-    println!("{}", cdt);
+    println!("s: {}", s);
+
 }
