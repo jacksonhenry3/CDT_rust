@@ -117,20 +117,10 @@ impl Slab {
         // use triangle index not space index
         match side {
             Direction::Left => {
-                if triangle_index == 0 {
-                    return true;
-                }
-                else{
-                    false
-                }
+                triangle_index == 0
             }
             Direction::Right => {
-                if triangle_index == self.ones() - 1 {
-                    return true;
-                }
-                else{
-                    false
-                }
+                triangle_index == self.ones() - 1
             }
         }
 
