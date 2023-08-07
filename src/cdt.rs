@@ -42,10 +42,10 @@ impl CDT {
         CDT::new((0..time_size).map(|_| slab_data.clone()).collect())
     }
 
-    pub fn volume_profile(&self) -> Vec<(usize, usize)> {
-        let mut result = vec![(0, 0); self.slabs.len()];
+    pub fn volume_profile(&self) -> Vec<usize> {
+        let mut result = vec![0; self.slabs.len()];
         for (i, slab) in self.iter().enumerate() {
-            result[i] = (slab.ones(), slab.zeros());
+            result[i] = slab.ones();
         }
         result
     }
