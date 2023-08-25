@@ -33,7 +33,7 @@ impl Slab {
         }
     }
 
-    //get triangle index (how many other triangles of the same type have already appeared in that slabn) from time and space index
+    //get triangle index (how many other triangles of the same type have already appeared in that slab) from time and space index
     pub fn get_triangle_index(&self, space_index: usize) -> usize {
         // assert!(space_index < self.length, "index out of bounds");
         //if the triangle is a zero type count the number of zeros in the slab to the left of the triangle using sum_binary_digit_range

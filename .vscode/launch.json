@@ -8,15 +8,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'CDT_rust'",
+            "name": "Debug executable 'cdt_rust'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=CDT_rust",
-                    "--package=CDT_rust"
+                    "--bin=cdt_rust",
+                    "--package=cdt_rust"
                 ],
                 "filter": {
-                    "name": "CDT_rust",
+                    "name": "cdt_rust",
                     "kind": "bin"
                 }
             },
@@ -26,16 +26,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'CDT_rust'",
+            "name": "Debug unit tests in executable 'cdt_rust'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=CDT_rust",
-                    "--package=CDT_rust"
+                    "--bin=cdt_rust",
+                    "--package=cdt_rust"
                 ],
                 "filter": {
-                    "name": "CDT_rust",
+                    "name": "cdt_rust",
                     "kind": "bin"
                 }
             },

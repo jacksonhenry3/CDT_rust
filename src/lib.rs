@@ -1,7 +1,9 @@
 pub mod cdt;
 pub mod slab;
 pub mod utils;
+pub mod volume_profiles;
 use cdt::CDT;
+
 
 pub use slab::Slab;
 
@@ -85,7 +87,7 @@ pub fn number_of_edges_arround_a_node(
 }
 
 // deficite angle
-pub fn deficite_angle(cdt: &CDT, time_index: usize, space_index: usize, side: Direction) -> f64 {
+pub fn deficite_angle(cdt: &CDT, time_index: usize, space_index: usize, side: Direction) -> i64 {
     let number_of_edges = number_of_edges_arround_a_node(cdt, time_index, space_index, side);
     let mut expected_number_of_edges = 6;
     //figure out if the node is on spatial or temporal boundary
@@ -97,14 +99,14 @@ pub fn deficite_angle(cdt: &CDT, time_index: usize, space_index: usize, side: Di
 
     // println!("{} {}", number_of_edges, expected_number_of_edges);
 
-    (number_of_edges as i64 - expected_number_of_edges) as f64 // * std::f64::consts::PI / 3.0
+    (number_of_edges as i64 - expected_number_of_edges) // * std::f64::consts::PI / 3.0
 }
 
 //create a cdt iterator that iterates over all possible cdt with a given volume profile using slab_iterator
 pub fn cdt_iterator(volume_profile: Vec<u32>) -> impl Iterator<Item = CDT> {
     //assert that every element in the volume profile is less than 128 and greater than 3
     assert!(
-        volume_profile.iter().all(|x| *x <= 128 && *x >= 0),
+        volume_profile.iter().all(|x| *x <= 128),
         "volume profile must be between 3 and 128"
     );
 
@@ -113,8 +115,9 @@ pub fn cdt_iterator(volume_profile: Vec<u32>) -> impl Iterator<Item = CDT> {
 
     for (i, num_zeros) in volume_profile.iter().rev().enumerate() {
         slab_iterators.push(all_slabs(
-            volume_profile[(i + 1).rem_euclid(volume_profile.len())],
             *num_zeros,
+            volume_profile[(i + 1).rem_euclid(volume_profile.len())],
+            
         ));
     }
 
@@ -123,7 +126,7 @@ pub fn cdt_iterator(volume_profile: Vec<u32>) -> impl Iterator<Item = CDT> {
         current_slabs.push(slab.next().unwrap());
     }
 
-    slab_iterators[0] = all_slabs(volume_profile[volume_profile.len() - 1], volume_profile[0]);
+    slab_iterators[0] = all_slabs( volume_profile[0],volume_profile[1]);
 
     std::iter::from_fn(move || {
         for i in 0..volume_profile.len() {
@@ -137,8 +140,9 @@ pub fn cdt_iterator(volume_profile: Vec<u32>) -> impl Iterator<Item = CDT> {
                     return None;
                 }
                 slab_iterators[i] = all_slabs(
-                    volume_profile[(i + 1).rem_euclid(volume_profile.len())],
                     volume_profile[i],
+                    volume_profile[(i + 1).rem_euclid(volume_profile.len())],
+                    
                 );
                 current_slabs[i] = slab_iterators[i].next().unwrap();
             }
@@ -148,9 +152,9 @@ pub fn cdt_iterator(volume_profile: Vec<u32>) -> impl Iterator<Item = CDT> {
     })
 }
 
-pub fn action(cdt: &CDT) -> f64 {
+pub fn action(cdt: &CDT) -> i64 {
     //calculate the einstien hilbert action of the cdt
-    let mut result = 0.0;
+    let mut result = 0;
 
     //sum the deficite angles of all nodes
     for (time_index, space_index, _value) in cdt
@@ -158,11 +162,11 @@ pub fn action(cdt: &CDT) -> f64 {
         .into_iter()
         .filter(|(_x, _t, value)| *value)
     {
-        result += deficite_angle(cdt, time_index, space_index, Direction::Right).powi(2);
+        result += deficite_angle(cdt, time_index, space_index, Direction::Right).pow(2);
 
         let triangle_index = cdt.get_triangle_index(time_index, space_index);
         if triangle_index == 0 {
-            result += deficite_angle(cdt, time_index, space_index, Direction::Left).powi(2);
+            result += deficite_angle(cdt, time_index, space_index, Direction::Left).pow(2);
         }
     }
 

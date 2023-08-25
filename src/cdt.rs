@@ -88,7 +88,7 @@ impl CDT {
         let triangle_index = slab.get_triangle_index(space_index);
 
         let other_time_index = if triangle {
-            (time_index - 1 + self.time_size()).rem_euclid(self.time_size())
+            (time_index + self.time_size() - 1 ).rem_euclid(self.time_size())
         } else {
             (time_index + 1).rem_euclid(self.time_size())
         };
