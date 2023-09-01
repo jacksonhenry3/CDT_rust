@@ -1,7 +1,7 @@
-
-fn main() {
+const VOLUME: u32 = 16;
+fn ok() {
     let volume = 8;
-    println!("{:?}",volume_profiles(volume));
+    println!("{:?}",volume_profiles(VOLUME));
 }
 
 fn volume_profiles(volume:u32) -> Vec<Vec<u32>> {
@@ -31,4 +31,30 @@ fn volume_profiles(volume:u32) -> Vec<Vec<u32>> {
         
     }
     volume_profile
+}
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+
+    use super::*;
+    #[test]
+    fn volume_test() {
+        for volume in (2..50).step_by(2) {
+            let profiles: Vec<Vec<u32>> = volume_profiles(volume);
+
+            assert!(profiles
+                .into_iter()
+                .all(|p| p.into_iter().sum::<u32>() == volume / 2))
+        }
+    }
+    #[test]
+    fn uniqueness_test() {
+        for volume in (2..50).step_by(2) {
+            let profiles: Vec<Vec<u32>> = volume_profiles(volume);
+            let mut set = HashSet::new();
+            for p in profiles {
+                assert!(set.insert(p))
+            }
+        }
+    }
 }
