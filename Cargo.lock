@@ -59,6 +59,7 @@ version = "0.1.0"
 dependencies = [
  "criterion",
  "grafferous",
+ "integer-partitions",
  "itertools 0.11.0",
  "rand",
  "rayon",
@@ -264,6 +265,12 @@ name = "hermit-abi"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "443144c8cdadd93ebf52ddb4056d257f5b52c04d3c804e657d19eb73fc33668b"
+
+[[package]]
+name = "integer-partitions"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0426629a21b65da94fdbb6d104900da8af7b3572c82f023813fb2f4f08de1a18"
 
 [[package]]
 name = "is-terminal"
