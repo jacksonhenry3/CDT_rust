@@ -4,7 +4,6 @@ pub mod utils;
 pub mod volume_profiles;
 use cdt::CDT;
 
-
 pub use slab::Slab;
 
 use crate::slab::all_slabs;
@@ -107,18 +106,15 @@ pub fn cdt_iterator(volume_profile: Vec<u32>) -> impl Iterator<Item = CDT> {
     //assert that every element in the volume profile is less than 128 and greater than 3
     assert!(
         volume_profile.iter().all(|x| *x <= 128),
-        "volume profile must be between 3 and 128"
+        "volume profile must be less than 128"
     );
 
     //create a vector of slab iterators where number of zeros is the next element in the volume profile
     let mut slab_iterators = vec![];
 
-    for (i, num_zeros) in volume_profile.iter().rev().enumerate() {
-        slab_iterators.push(all_slabs(
-            *num_zeros,
-            volume_profile[(i + 1).rem_euclid(volume_profile.len())],
-            
-        ));
+    for (i, num_zeros) in volume_profile.iter().enumerate() {
+        let num_ones = volume_profile[(i + 1).rem_euclid(volume_profile.len())];
+        slab_iterators.push(all_slabs(*num_zeros, num_ones));
     }
 
     let mut current_slabs = vec![];
@@ -126,7 +122,7 @@ pub fn cdt_iterator(volume_profile: Vec<u32>) -> impl Iterator<Item = CDT> {
         current_slabs.push(slab.next().unwrap());
     }
 
-    slab_iterators[0] = all_slabs( volume_profile[0],volume_profile[1]);
+    slab_iterators[0] = all_slabs(volume_profile[0], volume_profile[1]);
 
     std::iter::from_fn(move || {
         for i in 0..volume_profile.len() {
@@ -142,7 +138,6 @@ pub fn cdt_iterator(volume_profile: Vec<u32>) -> impl Iterator<Item = CDT> {
                 slab_iterators[i] = all_slabs(
                     volume_profile[i],
                     volume_profile[(i + 1).rem_euclid(volume_profile.len())],
-                    
                 );
                 current_slabs[i] = slab_iterators[i].next().unwrap();
             }
@@ -157,16 +152,14 @@ pub fn action(cdt: &CDT) -> i64 {
     let mut result = 0;
 
     //sum the deficite angles of all nodes
-    for (time_index, space_index, _value) in cdt
-        .triangles()
-        .into_iter()
-        .filter(|(_x, _t, value)| *value)
+    for (time_index, space_index, _value) in
+        cdt.triangles().into_iter().filter(|(_x, _t, value)| *value)
     {
-        result += deficite_angle(cdt, time_index, space_index, Direction::Right).pow(2);
+        result += deficite_angle(cdt, time_index, space_index, Direction::Right);
 
         let triangle_index = cdt.get_triangle_index(time_index, space_index);
         if triangle_index == 0 {
-            result += deficite_angle(cdt, time_index, space_index, Direction::Left).pow(2);
+            result += deficite_angle(cdt, time_index, space_index, Direction::Left);
         }
     }
 

@@ -88,13 +88,15 @@ impl CDT {
         let triangle_index = slab.get_triangle_index(space_index);
 
         let other_time_index = if triangle {
-            (time_index + self.time_size() - 1 ).rem_euclid(self.time_size())
+            (time_index + self.time_size() - 1).rem_euclid(self.time_size())
         } else {
             (time_index + 1).rem_euclid(self.time_size())
         };
 
         let other_slab = &self.slabs[other_time_index];
 
+        //print the cdt
+        println!("{}", self);
         let other_space_index = other_slab.get_triangle_in_slab_by_index(triangle_index, !triangle);
 
         //assert that the other triangle is a differnt type as the original triangle
