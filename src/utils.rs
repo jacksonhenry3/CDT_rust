@@ -36,3 +36,13 @@ fn graph_to_mathematica_format(graph: grafferous::Graph<(i32, i32), ()>) {
     result.push_str("}]");
     println!("{}", result);
 }
+
+pub fn choose(n: usize, k: usize) -> usize {
+    if k == 0 {
+        return 1;
+    }
+    if k > n {
+        return 0;
+    }
+    choose(n - 1, k - 1) + choose(n - 1, k)
+}

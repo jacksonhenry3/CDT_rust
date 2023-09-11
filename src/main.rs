@@ -1,7 +1,13 @@
 #![allow(unused)]
 use core::panic;
+use std::collections::HashMap;
+use std::time::{Duration, Instant};
 
-use cdt_rust::{action, cdt::CDT, cdt_iterator, slab::sum_binary_digit_range, volume_profiles};
+use cdt_rust::{
+    action, cdt::CDT, cdt_iterator, slab::sum_binary_digit_range, utils::choose,
+    volume_profiles::non_cyclic_permutations, volume_profiles::volume_profiles,
+};
+use itertools::Itertools;
 use rayon::prelude::*;
 
 fn measure_boundaries(cdt: &CDT) -> usize {
@@ -11,38 +17,22 @@ fn measure_boundaries(cdt: &CDT) -> usize {
 }
 
 fn main() {
-    let cdts = cdt_iterator(vec![4, 1, 2, 4]);
+    let a = volume_profiles(20).flatten();
 
-    for cdt in cdts {
-        //check validitiy
-        if !cdt.is_valid() {
-            println!("invalid cdt \n {}", cdt);
-            panic!();
+    // hasmap of volume profiles
+    let mut results = HashMap::new();
+    for volume_profile in a {
+        let mut count = 1;
+
+        for (i, layer_size) in volume_profile.profile.iter().enumerate() {
+            let next_layer_size = volume_profile.profile[(i + 1) % volume_profile.profile.len()];
+
+            // use the choose function (binomial coefecient) of layer_size and next_layer_size
+            count *= choose(*layer_size + next_layer_size, next_layer_size);
         }
+
+        results.insert(volume_profile.profile, count);
     }
 
-    // println!("done");
-
-    // //get the index of the cdt with the most transition triangles
-    // let max = cdts
-    //     .enumerate()
-    //     .map(|(i, cdt)| (action(&cdt), cdt))
-    //     .max()
-    //     .unwrap();
-
-    // let cdts = cdt_iterator(vec![4, 1, 1, 2, 4]);
-
-    // let min = cdts
-    //     .enumerate()
-    //     .map(|(i, cdt)| (action(&cdt), cdt))
-    //     .min()
-    //     .unwrap();
-
-    // println!("max: {}", max.0);
-    // println!("{}", max.1);
-
-    // println!("min: {}", min.0);
-    // println!("{}", min.1);
-
-    //to mathematica format
+    println!("{:?}", results);
 }
