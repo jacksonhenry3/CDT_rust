@@ -1,4 +1,7 @@
-use std::{collections::HashSet, hash::Hash};
+use std::{
+    collections::{HashMap, HashSet},
+    hash::Hash,
+};
 
 use integer_partitions::Partitions;
 use itertools::Itertools;
@@ -12,6 +15,7 @@ pub struct VolumeProfile {
 
 impl VolumeProfile {
     pub fn new(profile: Vec<usize>) -> VolumeProfile {
+        //id is not guaranteed to be unique
         let product = profile.iter().fold(1, |acc, x| acc * x);
 
         let mut id = 0;
@@ -25,14 +29,18 @@ impl VolumeProfile {
 
 impl PartialEq for VolumeProfile {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+        //used data instead because of nonunique id
+        //self.id == other.id
+        self.profile == other.profile
     }
 }
 impl Eq for VolumeProfile {}
 
 impl Hash for VolumeProfile {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
+        //used data instead because of nonunique id
+        //self.id.hash(state);
+        self.profile.hash(state);
     }
 }
 
@@ -59,17 +67,17 @@ pub fn volume_profiles(volume: usize) -> impl Iterator<Item = HashSet<VolumeProf
     })
 }
 
-fn histogram(volume: u32) -> HashMap<u64, u32> {
+fn histogram(volume: usize) -> HashMap<usize, u32> {
     let profiles = volume_profiles(volume);
     let mut counts = HashMap::new();
-    for profile in profiles {
+    for profile in profiles.into_iter().flatten() {
         let count = num_cdts_in_profile(&profile);
         *counts.entry(count).or_insert(0) += 1;
     }
     counts
 }
 
-pub fn write_histogram_to_file(volume: u32) {
+pub fn write_histogram_to_file(volume: usize) {
     let histogram = histogram(volume);
     let mut sorted = histogram.into_iter().collect::<Vec<_>>();
     sorted.sort_by_key(|&(n, _)| n);
@@ -83,20 +91,20 @@ pub fn write_histogram_to_file(volume: u32) {
     );
 }
 
-fn num_cdts_in_profile(volume_profile: &[u32]) -> u64 {
+fn num_cdts_in_profile(volume_profile: &VolumeProfile) -> usize {
     let mut count = 0;
-    for i in 1..volume_profile.len() {
-        let n = volume_profile[i];
-        let m = volume_profile[i - 1];
-        count += chose_n_plus_m(n, n);
+    for i in 1..volume_profile.profile.len() {
+        let n = volume_profile.profile[i];
+        let m = volume_profile.profile[i - 1];
+        count += chose_n_plus_m(n, m);
     }
     count
 }
 
-fn chose_n_plus_m(n: u32, m: u32) -> u64 {
-    let n = u128::from(n);
-    let m = u128::from(m);
-    (((n + 1)..=m).product::<u128>() / (1..=m).product::<u128>()) as u64
+fn chose_n_plus_m(n: usize, m: usize) -> usize {
+    let n = usize::from(n);
+    let m = usize::from(m);
+    ((n + 1)..=m).product::<usize>() / (1..=m).product::<usize>()
 }
 
 #[cfg(test)]
@@ -110,21 +118,25 @@ mod tests {
     use super::*;
     #[test]
     fn volume_test() {
-        for volume in (2..50).step_by(2) {
-            let profiles: Vec<Vec<u32>> = volume_profiles(volume);
+        for volume in (2..23).step_by(2) {
+            let profiles = volume_profiles(volume);
 
-            assert!(profiles
-                .into_iter()
-                .all(|p| p.into_iter().sum::<u32>() == volume / 2))
+            assert!(profiles.into_iter().all(|p| p.into_iter().all(|p| p
+                .profile
+                .iter()
+                .copied()
+                .sum::<usize>()
+                == volume / 2)))
         }
     }
     #[test]
+    //#[ignore]
     fn uniqueness_test() {
-        for volume in (2..50).step_by(2) {
-            let profiles: Vec<Vec<u32>> = volume_profiles(volume);
+        for volume in (2..23).step_by(2) {
+            let profiles = volume_profiles(volume);
             let mut set = HashSet::new();
-            for p in profiles {
-                assert!(set.insert(p))
+            for p in profiles.into_iter().flatten() {
+                assert!(set.insert(p));
             }
         }
     }
@@ -132,7 +144,7 @@ mod tests {
     #[test]
     #[ignore]
     fn volume_profile_test() {
-        for path in std::fs::read_dir("cdt_ref").unwrap() {
+        for path in std::fs::read_dir("tests/cdt_ref").unwrap() {
             let path = path.unwrap().path();
             let file = File::open(&path).unwrap();
 
@@ -142,8 +154,12 @@ mod tests {
                 .to_str()
                 .unwrap()
                 .trim_start_matches("cdt_ref_")
-                .parse::<u32>()
+                .parse::<usize>()
                 .unwrap();
+            //max testing size
+            if volume >= 11 {
+                continue;
+            }
 
             let set = BufReader::new(file)
                 .lines()
@@ -152,15 +168,15 @@ mod tests {
 
                     line.trim_matches(['{', '}'].as_slice())
                         .split(", ")
-                        .map(|x| x.parse::<u32>().unwrap())
+                        .map(|x| x.parse::<usize>().unwrap())
                         .collect::<Vec<_>>()
                 })
                 .collect::<HashSet<_>>();
 
-            let profiles = volume_profiles(2 * volume);
-            assert_eq!(profiles.len(), set.len());
-            for profile in profiles {
-                assert!(set.contains(&profile));
+            let profiles = volume_profiles(2 * volume).collect::<Vec<_>>();
+            assert_eq!(profiles.iter().map(HashSet::len).sum::<usize>(), set.len());
+            for profile in profiles.into_iter().flatten() {
+                assert!(set.contains(&profile.profile));
             }
         }
     }

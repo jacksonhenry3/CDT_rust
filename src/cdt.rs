@@ -1,8 +1,6 @@
 use crate::slab::Slab;
 use grafferous;
 
-//import slab
-
 use rand::seq::SliceRandom;
 use rand::Rng;
 /// A CDT is a sequence of slabs, where the last slab is connected to the first slab.

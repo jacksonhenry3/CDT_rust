@@ -249,6 +249,8 @@ dependencies = [
 [[package]]
 name = "grafferous"
 version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e1cd05863e31126994254196e462c263760c257233ded15e24b90a00b22910b"
 dependencies = [
  "fnv",
  "rand",
