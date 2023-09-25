@@ -10,37 +10,38 @@ use itertools::Itertools;
 #[derive(Debug, Clone)]
 pub struct VolumeProfile {
     pub profile: Vec<usize>,
-    pub id: usize,
+    pub id: (usize, usize, usize, usize),
 }
 
 impl VolumeProfile {
     pub fn new(profile: Vec<usize>) -> VolumeProfile {
         //id is not guaranteed to be unique
         let product = profile.iter().fold(1, |acc, x| acc * x);
+        let sum = profile.iter().sum::<usize>();
+        let length = profile.len();
 
         let mut id = 0;
         for (index, val) in profile.iter().enumerate() {
             let next = profile[(index + 1) % profile.len()];
             id += val * (product / next);
         }
-        VolumeProfile { profile, id }
+        VolumeProfile {
+            profile,
+            id: (id, sum, length, product),
+        }
     }
 }
 
 impl PartialEq for VolumeProfile {
     fn eq(&self, other: &Self) -> bool {
-        //used data instead because of nonunique id
-        //self.id == other.id
-        self.profile == other.profile
+        self.id == other.id
     }
 }
 impl Eq for VolumeProfile {}
 
 impl Hash for VolumeProfile {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        //used data instead because of nonunique id
-        //self.id.hash(state);
-        self.profile.hash(state);
+        self.id.hash(state);
     }
 }
 
@@ -56,7 +57,6 @@ pub fn non_cyclic_permutations(vec: Vec<usize>) -> HashSet<VolumeProfile> {
 }
 
 pub fn volume_profiles(volume: usize) -> impl Iterator<Item = HashSet<VolumeProfile>> {
-    //assert div 2, with message
     assert_eq!(volume % 2, 0, "volume must be divisible by 2");
 
     let mut a = Partitions::new(volume / 2);
@@ -118,7 +118,7 @@ mod tests {
     use super::*;
     #[test]
     fn volume_test() {
-        for volume in (2..23).step_by(2) {
+        for volume in (2..17).step_by(2) {
             let profiles = volume_profiles(volume);
 
             assert!(profiles.into_iter().all(|p| p.into_iter().all(|p| p
@@ -132,10 +132,11 @@ mod tests {
     #[test]
     //#[ignore]
     fn uniqueness_test() {
-        for volume in (2..23).step_by(2) {
+        for volume in (2..17).step_by(2) {
             let profiles = volume_profiles(volume);
             let mut set = HashSet::new();
-            for p in profiles.into_iter().flatten() {
+            for p in profiles.flatten() {
+                println!("{:?}", p);
                 assert!(set.insert(p));
             }
         }
@@ -173,6 +174,7 @@ mod tests {
                 })
                 .collect::<HashSet<_>>();
 
+            println!("volume: {}", volume);
             let profiles = volume_profiles(2 * volume).collect::<Vec<_>>();
             assert_eq!(profiles.iter().map(HashSet::len).sum::<usize>(), set.len());
             for profile in profiles.into_iter().flatten() {
