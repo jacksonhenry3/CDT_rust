@@ -33,6 +33,18 @@ impl VolumeProfile {
             id = id.wrapping_add(temp);
             profile_rotator.rotate_left(1);
         }
+
+        let mut profile_rotator = profile.clone();
+        profile_rotator = profile_rotator.into_iter().rev().collect::<VecDeque<_>>();
+
+        for _ in 0..(profile.len()) {
+            let mut hasher = DefaultHasher::new();
+            profile_rotator.hash(&mut hasher);
+            let temp = hasher.finish();
+            // println!("{:?} : {} ", profile_rotator, temp);
+            id = id.wrapping_add(temp);
+            profile_rotator.rotate_left(1);
+        }
         // println!("finished");
 
         VolumeProfile { profile, id }
