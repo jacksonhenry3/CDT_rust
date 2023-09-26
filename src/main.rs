@@ -3,6 +3,7 @@ use core::panic;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
+use cdt_rust::volume_profiles::VolumeProfile;
 use cdt_rust::{
     action, cdt::CDT, cdt_iterator, slab::sum_binary_digit_range, utils::choose,
     volume_profiles::non_cyclic_permutations, volume_profiles::volume_profiles,
@@ -17,22 +18,24 @@ fn measure_boundaries(cdt: &CDT) -> usize {
 }
 
 fn main() {
-    let a = volume_profiles(20).flatten();
+    // let a = volume_profiles(20).flatten();
 
-    // hasmap of volume profiles
-    let mut results = HashMap::new();
-    for volume_profile in a {
-        let mut count = 1;
+    // // hasmap of volume profiles
+    // let mut results = HashMap::new();
+    // for volume_profile in a {
+    //     let mut count = 1;
 
-        for (i, layer_size) in volume_profile.profile.iter().enumerate() {
-            let next_layer_size = volume_profile.profile[(i + 1) % volume_profile.profile.len()];
+    //     for (i, layer_size) in volume_profile.profile.iter().enumerate() {
+    //         let next_layer_size = volume_profile.profile[(i + 1) % volume_profile.profile.len()];
 
-            // use the choose function (binomial coefecient) of layer_size and next_layer_size
-            count *= choose(*layer_size + next_layer_size, next_layer_size);
-        }
+    //         // use the choose function (binomial coefecient) of layer_size and next_layer_size
+    //         count *= choose(*layer_size + next_layer_size, next_layer_size);
+    //     }
 
-        results.insert(volume_profile.profile, count);
-    }
+    //     results.insert(volume_profile.profile, count);
+    // }
 
-    println!("{:?}", results);
+    // println!("{:?}", results);
+
+    let a = VolumeProfile::new(vec![1, 2, 3, 4, 5, 6, 7].into());
 }

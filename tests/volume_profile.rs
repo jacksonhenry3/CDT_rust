@@ -3,7 +3,7 @@ use cdt_rust::volume_profiles::volume_profiles;
 #[cfg(test)]
 mod tests {
     use std::{
-        collections::HashSet,
+        collections::{HashSet, VecDeque},
         fs::File,
         io::{BufRead, BufReader},
     };
@@ -25,7 +25,7 @@ mod tests {
     #[test]
     //#[ignore]
     fn uniqueness_test() {
-        for volume in (2..17).step_by(2) {
+        for volume in (2..20).step_by(2) {
             let profiles = volume_profiles(volume);
             let mut set = HashSet::new();
             for p in profiles.flatten() {
@@ -63,7 +63,7 @@ mod tests {
                     line.trim_matches(['{', '}'].as_slice())
                         .split(", ")
                         .map(|x| x.parse::<usize>().unwrap())
-                        .collect::<Vec<_>>()
+                        .collect::<VecDeque<_>>()
                 })
                 .collect::<HashSet<_>>();
 

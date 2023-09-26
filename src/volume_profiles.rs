@@ -1,6 +1,6 @@
 use std::{
-    collections::{HashMap, HashSet},
-    hash::Hash,
+    collections::{hash_map::DefaultHasher, HashMap, HashSet, VecDeque},
+    hash::{Hash, Hasher},
 };
 
 use integer_partitions::Partitions;
@@ -11,26 +11,31 @@ use crate::utils;
 //derive eq
 #[derive(Debug, Clone)]
 pub struct VolumeProfile {
-    pub profile: Vec<usize>,
-    pub id: (usize, usize, usize, usize),
+    pub profile: VecDeque<usize>,
+    pub id: u64,
 }
 
 impl VolumeProfile {
-    pub fn new(profile: Vec<usize>) -> VolumeProfile {
-        //id is not guaranteed to be unique
-        let product = profile.iter().fold(1, |acc, x| acc * x);
-        let sum = profile.iter().sum::<usize>();
-        let length = profile.len();
+    pub fn new(profile: VecDeque<usize>) -> VolumeProfile {
+        let mut profile_rotator = profile.clone();
 
-        let mut id = 0;
-        for (index, val) in profile.iter().enumerate() {
-            let next = profile[(index + 1) % profile.len()];
-            id += val * (product / next);
+        //sum of profile
+        let sum = profile.iter().sum::<usize>();
+
+        let mut hasher = DefaultHasher::new();
+        sum.hash(&mut hasher);
+        let mut id = hasher.finish();
+        for _ in 0..(profile.len()) {
+            let mut hasher = DefaultHasher::new();
+            profile_rotator.hash(&mut hasher);
+            let temp = hasher.finish();
+            // println!("{:?} : {} ", profile_rotator, temp);
+            id = id.wrapping_add(temp);
+            profile_rotator.rotate_left(1);
         }
-        VolumeProfile {
-            profile,
-            id: (id, sum, length, product),
-        }
+        // println!("finished");
+
+        VolumeProfile { profile, id }
     }
 }
 
@@ -52,7 +57,7 @@ pub fn non_cyclic_permutations(vec: Vec<usize>) -> HashSet<VolumeProfile> {
         .iter()
         .cloned()
         .permutations(vec.len())
-        .map(|x| VolumeProfile::new(x))
+        .map(|x| VolumeProfile::new(x.into()))
         .collect();
 
     result
