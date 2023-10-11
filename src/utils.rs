@@ -52,26 +52,26 @@ pub fn choose(n: usize, k: usize) -> usize {
     choose(n - 1, k - 1) + choose(n - 1, k)
 }
 
-fn histogram(volume: usize) -> HashMap<usize, u32> {
-    let profiles = volume_profiles(volume);
-    let mut counts = HashMap::new();
-    for profile in profiles.into_iter().flatten() {
-        let count = num_cdts_in_profile(profile);
-        *counts.entry(count).or_insert(0) += 1;
-    }
-    counts
-}
+// fn histogram(volume: usize) -> HashMap<usize, u32> {
+//     let profiles = volume_profiles(volume);
+//     let mut counts = HashMap::new();
+//     for profile in profiles.into_iter().flatten() {
+//         let count = num_cdts_in_profile(profile);
+//         *counts.entry(count).or_insert(0) += 1;
+//     }
+//     counts
+// }
 
-pub fn write_histogram_to_file(volume: usize) {
-    let histogram = histogram(volume);
-    let mut sorted = histogram.into_iter().collect::<Vec<_>>();
-    sorted.sort_by_key(|&(n, _)| n);
-    let _ = std::fs::write(
-        format!("Histogram {volume}"),
-        sorted
-            .into_iter()
-            .map(|(num, freq)| format!("{num}: {freq}"))
-            .collect::<Vec<_>>()
-            .join("\n"),
-    );
-}
+// pub fn write_histogram_to_file(volume: usize) {
+//     let histogram = histogram(volume);
+//     let mut sorted = histogram.into_iter().collect::<Vec<_>>();
+//     sorted.sort_by_key(|&(n, _)| n);
+//     let _ = std::fs::write(
+//         format!("Histogram {volume}"),
+//         sorted
+//             .into_iter()
+//             .map(|(num, freq)| format!("{num}: {freq}"))
+//             .collect::<Vec<_>>()
+//             .join("\n"),
+//     );
+// }

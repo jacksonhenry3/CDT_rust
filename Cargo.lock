@@ -110,7 +110,6 @@ dependencies = [
  "cached",
  "criterion",
  "grafferous",
- "integer-partitions",
  "itertools 0.11.0",
  "rand",
  "rayon",
@@ -386,12 +385,6 @@ checksum = "7a5bbe824c507c5da5956355e86a746d82e0e1464f65d862cc5e71da70e94b2c"
 dependencies = [
  "cfg-if",
 ]
-
-[[package]]
-name = "integer-partitions"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0426629a21b65da94fdbb6d104900da8af7b3572c82f023813fb2f4f08de1a18"
 
 [[package]]
 name = "is-terminal"

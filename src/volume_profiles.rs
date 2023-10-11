@@ -8,7 +8,6 @@ use cached::proc_macro::cached;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
-use integer_partitions::Partitions;
 use itertools::Itertools;
 
 use weighted_rand::builder::*;
@@ -82,15 +81,25 @@ pub fn non_cyclic_permutations(vec: Vec<usize>) -> HashSet<VolumeProfile> {
     result
 }
 
-pub fn volume_profiles(volume: usize) -> impl Iterator<Item = HashSet<VolumeProfile>> {
-    assert_eq!(volume % 2, 0, "volume must be divisible by 2");
+pub fn volume_profiles(volume: usize, time_size: usize) -> HashSet<VolumeProfile> {
+    assert!(volume % 2 == 0, "Volume must be even");
+    let total_spatial_length = volume / 2;
 
-    let mut a = Partitions::new(volume / 2);
+    let all_dividers = (1..total_spatial_length).combinations(time_size - 1);
+    let mut final_result = HashSet::new();
+    for mut dividers in all_dividers {
+        dividers.push(total_spatial_length);
 
-    std::iter::from_fn(move || match a.next() {
-        Some(profile) => Some(non_cyclic_permutations(profile.to_vec())),
-        _ => None,
-    })
+        let mut result = vec![0; time_size];
+        let mut prev = 0;
+        for (i, &num) in dividers.iter().enumerate() {
+            result[i] = num - prev;
+            prev = num;
+        }
+        final_result.insert(VolumeProfile::new(result.into()));
+    }
+
+    final_result
 }
 
 #[cached]
@@ -148,5 +157,11 @@ pub fn weighted_random_partition(n: usize, total: usize) -> VecDeque<usize> {
 
 pub fn random_volume_profile(volume: usize, time_size: usize) -> VolumeProfile {
     let partition = weighted_random_partition(time_size, volume / 2);
+
+    // not calculculating the id leads to a ~10% speedup (IF COLLECTING IN TO A HASH TABLE)
     VolumeProfile::new(partition)
+    // VolumeProfile {
+    //     profile: partition,
+    //     id: 0,
+    // }
 }

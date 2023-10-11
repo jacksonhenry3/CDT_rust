@@ -24,21 +24,11 @@ fn main() {
     // let a = constrained_sum_sample_pos(32, 32 * 32);
     //generate a million constrained sum samples using rayon
     let now = Instant::now();
-    let samples: Vec<_> = (0..100)
+    let samples = (0..1_000)
         .into_par_iter()
-        .map(|_| random_volume_profile(128 * 128, 128))
-        .collect();
+        .map(|_| random_volume_profile(32 * 32, 32));
 
-    let elapsed_time = now.elapsed();
-    println!(" {} ms.", elapsed_time.as_millis());
-
-    // printem all
-    //make a hashset of samples
-    let mut sample_set: HashSet<VolumeProfile> = samples.into_par_iter().collect();
-    for sample in &sample_set {
-        println!("{:?}", sample);
-    }
-    println!("Number of samples: {}", sample_set.len());
+    samples.count();
 
     let elapsed_time = now.elapsed();
     println!(" {} ms.", elapsed_time.as_millis());
