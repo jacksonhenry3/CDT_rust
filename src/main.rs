@@ -1,11 +1,13 @@
 #![allow(unused)]
-use core::panic;
-use std::collections::HashMap;
-use std::time::{Duration, Instant};
+use std::collections::{HashMap, HashSet};
+use std::time::{self, Instant};
+use weighted_rand::builder::*;
 
-use cdt_rust::volume_profiles::VolumeProfile;
+use cdt_rust::volume_profiles::{
+    constrained_sum_sample_pos, num_cdts_in_profile, random_volume_profile, VolumeProfile,
+};
 use cdt_rust::{
-    action, cdt::CDT, cdt_iterator, slab::sum_binary_digit_range, utils::choose,
+    cdt::CDT, cdt_iterator, eh_action, slab::sum_binary_digit_range, utils::choose,
     volume_profiles::non_cyclic_permutations, volume_profiles::volume_profiles,
 };
 use itertools::Itertools;
@@ -18,24 +20,50 @@ fn measure_boundaries(cdt: &CDT) -> usize {
 }
 
 fn main() {
-    // let a = volume_profiles(20).flatten();
+    let volume = 100;
+    // let a = constrained_sum_sample_pos(32, 32 * 32);
+    //generate a million constrained sum samples using rayon
+    let now = Instant::now();
+    let samples: Vec<_> = (0..100)
+        .into_par_iter()
+        .map(|_| random_volume_profile(128 * 128, 128))
+        .collect();
 
-    // // hasmap of volume profiles
-    // let mut results = HashMap::new();
-    // for volume_profile in a {
-    //     let mut count = 1;
+    let elapsed_time = now.elapsed();
+    println!(" {} ms.", elapsed_time.as_millis());
 
-    //     for (i, layer_size) in volume_profile.profile.iter().enumerate() {
-    //         let next_layer_size = volume_profile.profile[(i + 1) % volume_profile.profile.len()];
+    // printem all
+    //make a hashset of samples
+    let mut sample_set: HashSet<VolumeProfile> = samples.into_par_iter().collect();
+    for sample in &sample_set {
+        println!("{:?}", sample);
+    }
+    println!("Number of samples: {}", sample_set.len());
 
-    //         // use the choose function (binomial coefecient) of layer_size and next_layer_size
-    //         count *= choose(*layer_size + next_layer_size, next_layer_size);
-    //     }
+    let elapsed_time = now.elapsed();
+    println!(" {} ms.", elapsed_time.as_millis());
 
-    //     results.insert(volume_profile.profile, count);
+    // let profiles: Vec<_> = volume_profiles(volume).into_iter().flatten().collect();
+
+    // let mut counts = vec![];
+    // for profile in (&profiles).into_iter() {
+    //     println!("{:?}", &profile);
+    //     let count = num_cdts_in_profile(&profile);
+    //     counts.push(count as u32);
     // }
 
-    // println!("{:?}", results);
+    // let builder = WalkerTableBuilder::new(&counts);
+    // let wa_table = builder.build();
 
-    let a = VolumeProfile::new(vec![1, 2, 3, 4, 5, 6, 7].into());
+    // for i in (0..10).map(|_| wa_table.next()) {
+    //     println!("{:?}", &profiles[i]);
+    // }
+
+    // let profiles = volume_profiles(volume);
+
+    // println!("Number of profiles: {}", profiles.count());
+
+    // for profile in profiles {
+    //     println!("{:?}", profile);
+    // }
 }

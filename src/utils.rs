@@ -1,6 +1,7 @@
 //ignor unusued
 #![allow(dead_code)]
 
+use cached::proc_macro::cached;
 use std::collections::HashMap;
 
 use crate::cdt::CDT;
@@ -40,6 +41,7 @@ fn graph_to_mathematica_format(graph: grafferous::Graph<(i32, i32), ()>) {
     println!("{}", result);
 }
 
+#[cached]
 pub fn choose(n: usize, k: usize) -> usize {
     if k == 0 {
         return 1;
@@ -54,7 +56,7 @@ fn histogram(volume: usize) -> HashMap<usize, u32> {
     let profiles = volume_profiles(volume);
     let mut counts = HashMap::new();
     for profile in profiles.into_iter().flatten() {
-        let count = num_cdts_in_profile(&profile);
+        let count = num_cdts_in_profile(profile);
         *counts.entry(count).or_insert(0) += 1;
     }
     counts

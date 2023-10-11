@@ -1,10 +1,17 @@
 use std::{
-    collections::{hash_map::DefaultHasher, HashMap, HashSet, VecDeque},
+    collections::{hash_map::DefaultHasher, HashSet, VecDeque},
     hash::{Hash, Hasher},
 };
 
+use cached::proc_macro::cached;
+
+use rand::seq::SliceRandom;
+use rand::thread_rng;
+
 use integer_partitions::Partitions;
 use itertools::Itertools;
+
+use weighted_rand::builder::*;
 
 use crate::utils;
 
@@ -86,12 +93,60 @@ pub fn volume_profiles(volume: usize) -> impl Iterator<Item = HashSet<VolumeProf
     })
 }
 
-pub fn num_cdts_in_profile(volume_profile: &VolumeProfile) -> usize {
+#[cached]
+pub fn num_cdts_in_profile(volume_profile: VolumeProfile) -> usize {
     let mut count = 0;
     for i in 1..volume_profile.profile.len() {
         let n = volume_profile.profile[i];
-        let k = volume_profile.profile[i - 1];
-        count += utils::choose(n, k);
+        let m = volume_profile.profile[i - 1];
+        count += utils::choose(n + m, m);
     }
     count
+}
+
+pub fn constrained_sum_sample_pos(n: usize, total: usize) -> VecDeque<usize> {
+    // This generates an unweighted random partition of n with a total sum of total.
+    // however, we need the sum to be weighted by the number of CDTs in each partition.
+    let mut rng = thread_rng();
+    let mut dividers: Vec<usize> = (1..total).collect();
+    dividers.shuffle(&mut rng);
+    dividers.truncate(n - 1);
+    dividers.sort_unstable();
+    dividers.push(total);
+    let mut result = vec![0; n];
+    let mut prev = 0;
+    for (i, &num) in dividers.iter().enumerate() {
+        result[i] = num - prev;
+        prev = num;
+    }
+    result.into()
+}
+
+pub fn weighted_random_partition(n: usize, total: usize) -> VecDeque<usize> {
+    let mut base = vec![1; n];
+    let mut weights = Vec::with_capacity(n);
+    for _ in 0..total - n {
+        weights.clear();
+
+        for i in 0..n {
+            let vp = VolumeProfile {
+                profile: base.clone().into(),
+                id: 0,
+            };
+            let value = num_cdts_in_profile(vp);
+            weights.push((value * base[i]) as u32);
+        }
+
+        let builder = WalkerTableBuilder::new(&weights);
+        let wa_table = builder.build();
+        let r = wa_table.next();
+        base[r] += 1;
+    }
+
+    base.into()
+}
+
+pub fn random_volume_profile(volume: usize, time_size: usize) -> VolumeProfile {
+    let partition = weighted_random_partition(time_size, volume / 2);
+    VolumeProfile::new(partition)
 }

@@ -20,7 +20,6 @@ pub fn number_of_edges_arround_a_node(
     space_index: usize,
     direction: Direction,
 ) -> usize {
-    //TODO this should probs change.
     let mut result = 2;
 
     let next_index = |space_index: usize, space_size: usize| -> Option<usize> {
@@ -98,7 +97,7 @@ pub fn deficite_angle(cdt: &CDT, time_index: usize, space_index: usize, side: Di
 
     // println!("{} {}", number_of_edges, expected_number_of_edges);
 
-    (number_of_edges as i64 - expected_number_of_edges) // * std::f64::consts::PI / 3.0
+    number_of_edges as i64 - expected_number_of_edges // * std::f64::consts::PI / 3.0
 }
 
 //create a cdt iterator that iterates over all possible cdt with a given volume profile using slab_iterator
@@ -147,7 +146,26 @@ pub fn cdt_iterator(volume_profile: Vec<u32>) -> impl Iterator<Item = CDT> {
     })
 }
 
-pub fn action(cdt: &CDT) -> i64 {
+pub fn rsqrd_action(cdt: &CDT) -> i64 {
+    //calculate the einstien hilbert action of the cdt
+    let mut result = 0;
+
+    //sum the deficite angles of all nodes
+    for (time_index, space_index, _value) in
+        cdt.triangles().into_iter().filter(|(_x, _t, value)| *value)
+    {
+        result += deficite_angle(cdt, time_index, space_index, Direction::Right).pow(2);
+
+        let triangle_index = cdt.get_triangle_index(time_index, space_index);
+        if triangle_index == 0 {
+            result += deficite_angle(cdt, time_index, space_index, Direction::Left);
+        }
+    }
+
+    result
+}
+
+pub fn eh_action(cdt: &CDT) -> i64 {
     //calculate the einstien hilbert action of the cdt
     let mut result = 0;
 
