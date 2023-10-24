@@ -1,5 +1,8 @@
 #![allow(unused)]
 use std::collections::{HashMap, HashSet};
+use std::fs::File;
+use std::io::BufWriter;
+use std::io::Write;
 use std::time::{self, Instant};
 use weighted_rand::builder::*;
 
@@ -19,8 +22,41 @@ fn measure_boundaries(cdt: &CDT) -> usize {
     transition_triangles.iter().count()
 }
 
+fn write_data(vol: usize) {
+    let path = format!("Volume_{}.csv", vol);
+    let mut f = File::create(path).unwrap();
+    let mut w = BufWriter::new(&mut f);
+    for time in 2..=vol {
+        for profile in volume_profiles(vol, time) {
+            let profile_vec = profile.profile.iter().map(|&x| x as u32).collect();
+            let profile_id = profile.id;
+            let vol_prof = profile
+                .profile
+                .iter()
+                .map(|p| p.to_string())
+                .collect::<Vec<_>>()
+                .join(",");
+            let num_cdts = num_cdts_in_profile(profile);
+            for (i, cdt) in cdt_iterator(profile_vec).enumerate() {
+                let id = format!("{}{}", profile_id, i);
+                writeln!(
+                    w,
+                    "{},\"{}\",{},{}",
+                    id,
+                    vol_prof,
+                    num_cdts,
+                    eh_action(&cdt)
+                )
+                .unwrap();
+            }
+        }
+    }
+}
+
 fn main() {
-    let volume = 100;
+    let volume = 16;
+    write_data(volume);
+
     // let a = constrained_sum_sample_pos(32, 32 * 32);
     //generate a million constrained sum samples using rayon
     let now = Instant::now();

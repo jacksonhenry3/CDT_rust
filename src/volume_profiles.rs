@@ -104,11 +104,13 @@ pub fn volume_profiles(volume: usize, time_size: usize) -> HashSet<VolumeProfile
 
 #[cached]
 pub fn num_cdts_in_profile(volume_profile: VolumeProfile) -> usize {
-    let mut count = 0;
+    let n = volume_profile.profile[0];
+    let m = volume_profile.profile[volume_profile.profile.len() - 1];
+    let mut count = utils::choose(n + m, n);
     for i in 1..volume_profile.profile.len() {
         let n = volume_profile.profile[i];
         let m = volume_profile.profile[i - 1];
-        count += utils::choose(n + m, m);
+        count *= utils::choose(n + m, m);
     }
     count
 }
