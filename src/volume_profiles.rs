@@ -1,12 +1,10 @@
+use rand::seq::SliceRandom;
+use rand::thread_rng;
+use rayon::prelude::*;
 use std::{
     collections::{hash_map::DefaultHasher, HashSet, VecDeque},
     hash::{Hash, Hasher},
 };
-
-use cached::proc_macro::cached;
-
-use rand::seq::SliceRandom;
-use rand::thread_rng;
 
 use itertools::Itertools;
 
@@ -102,17 +100,31 @@ pub fn volume_profiles(volume: usize, time_size: usize) -> HashSet<VolumeProfile
     final_result
 }
 
-#[cached]
-pub fn num_cdts_in_profile(volume_profile: VolumeProfile) -> usize {
-    let n = volume_profile.profile[0];
-    let m = volume_profile.profile[volume_profile.profile.len() - 1];
-    let mut count = utils::choose(n + m, n);
+// #[cached]
+pub fn num_cdts_in_profile(volume_profile: &VolumeProfile) -> u128 {
+    let mut count = 1;
     for i in 1..volume_profile.profile.len() {
         let n = volume_profile.profile[i];
         let m = volume_profile.profile[i - 1];
-        count *= utils::choose(n + m, m);
+        count *= (utils::choose(n + m, m) as u128);
     }
     count
+}
+pub fn num_cdts_in_profile_proportional(
+    volume_profile: &VolumeProfile,
+    proportionality: f64,
+) -> f64 {
+    let prof_vec: Vec<_> = volume_profile.profile.clone().into();
+    let a = prof_vec.windows(2).par_bridge().map(|window| {
+        let n = window[1];
+        let m = window[0];
+        utils::proportional_choose(n + m, m, proportionality)
+    });
+
+    // let values = a.clone().collect::<Vec<_>>();
+
+    // println!("{:?}", values);
+    a.reduce(|| 1f64, |a, b| a * b)
 }
 
 pub fn constrained_sum_sample_pos(n: usize, total: usize) -> VecDeque<usize> {
@@ -144,7 +156,7 @@ pub fn weighted_random_partition(n: usize, total: usize) -> VecDeque<usize> {
                 profile: base.clone().into(),
                 id: 0,
             };
-            let value = num_cdts_in_profile(vp);
+            let value = num_cdts_in_profile_proportional(&vp, 10e-29) as usize;
             weights.push((value * base[i]) as u32);
         }
 
@@ -158,7 +170,8 @@ pub fn weighted_random_partition(n: usize, total: usize) -> VecDeque<usize> {
 }
 
 pub fn random_volume_profile(volume: usize, time_size: usize) -> VolumeProfile {
-    let partition = weighted_random_partition(time_size, volume / 2);
+    // let partition = weighted_random_partition(time_size, volume / 2);
+    let partition = constrained_sum_sample_pos(time_size, volume / 2);
 
     // not calculculating the id leads to a ~10% speedup (IF COLLECTING IN TO A HASH TABLE)
     VolumeProfile::new(partition)

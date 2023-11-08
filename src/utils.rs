@@ -52,6 +52,38 @@ pub fn choose(n: usize, k: usize) -> usize {
     choose(n - 1, k - 1) + choose(n - 1, k)
 }
 
+pub fn binomial_coefficient(n: u64, k: u64) -> u64 {
+    let mut dp = vec![vec![0u64; k as usize + 1]; n as usize + 1];
+
+    for i in 0..=n as usize {
+        for j in 0..=std::cmp::min(i, k as usize) {
+            if j == 0 || j == i {
+                dp[i][j] = 1;
+            } else {
+                dp[i][j] = dp[i - 1][j - 1] + dp[i - 1][j];
+            }
+        }
+    }
+
+    dp[n as usize][k as usize]
+}
+
+pub fn proportional_choose(n: usize, k: usize, scale_factor: f64) -> f64 {
+    let mut dp = vec![vec![0f64; k as usize + 1]; n as usize + 1];
+
+    for i in 0..=n as usize {
+        for j in 0..=std::cmp::min(i, k as usize) {
+            if j == 0 || j == i {
+                dp[i][j] = scale_factor;
+            } else {
+                dp[i][j] = dp[i - 1][j - 1] + dp[i - 1][j];
+            }
+        }
+    }
+
+    dp[n as usize][k as usize]
+}
+
 // fn histogram(volume: usize) -> HashMap<usize, u32> {
 //     let profiles = volume_profiles(volume);
 //     let mut counts = HashMap::new();
