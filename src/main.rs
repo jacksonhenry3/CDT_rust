@@ -1,4 +1,5 @@
 #![allow(unused)]
+use cdt_rust::slab;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::BufWriter;
@@ -36,16 +37,24 @@ fn write_data(vol: usize) {
                 .map(|p| p.to_string())
                 .collect::<Vec<_>>()
                 .join(",");
-            let num_cdts = num_cdts_in_profile(profile);
+            let num_cdts = num_cdts_in_profile(profile.clone());
             for (i, cdt) in cdt_iterator(profile_vec).enumerate() {
                 let id = format!("{}{}", profile_id, i);
+                let bin_cdt = cdt
+                    .slabs
+                    .iter()
+                    .zip(&profile.profile)
+                    .map(|(slab, width)| format!("{:0>w$b}", slab.data, w = 2 * width))
+                    .collect::<Vec<_>>()
+                    .join(" ");
                 writeln!(
                     w,
-                    "{},\"{}\",{},{}",
+                    "{},\"{}\",{},{},{}",
                     id,
                     vol_prof,
                     num_cdts,
-                    eh_action(&cdt)
+                    eh_action(&cdt),
+                    bin_cdt
                 )
                 .unwrap();
             }
@@ -54,7 +63,7 @@ fn write_data(vol: usize) {
 }
 
 fn main() {
-    let volume = 16;
+    let volume = 12;
     write_data(volume);
 
     // let a = constrained_sum_sample_pos(32, 32 * 32);
