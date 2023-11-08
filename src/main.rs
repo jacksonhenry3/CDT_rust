@@ -37,7 +37,7 @@ fn write_data(vol: usize) {
                 .map(|p| p.to_string())
                 .collect::<Vec<_>>()
                 .join(",");
-            let num_cdts = num_cdts_in_profile(profile.clone());
+            let num_cdts = num_cdts_in_profile(&profile);
             for (i, cdt) in cdt_iterator(profile_vec).enumerate() {
                 let id = format!("{}{}", profile_id, i);
                 let bin_cdt = cdt
