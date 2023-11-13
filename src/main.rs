@@ -47,8 +47,8 @@ fn write_data(vol: usize) {
     let mut w = std::io::BufWriter::new(&mut f);
 
     for (vp, s) in flat_result {
-        let vol_prof = vp.iter().join(",");
-        writeln!(w, "{},{}", vol_prof, s).unwrap();
+        let vol_prof = vp.iter().join(":");
+        writeln!(w, "{:?},{}", vol_prof, s).unwrap();
     }
 }
 
