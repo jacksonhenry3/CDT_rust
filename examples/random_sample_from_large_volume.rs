@@ -5,6 +5,4 @@ fn main() {
     let a: Vec<_> = (0..10_000)
         .map(|_| weighted_random_partition(4, 10))
         .collect();
-
-    fcv
 }

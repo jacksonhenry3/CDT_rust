@@ -111,19 +111,13 @@ impl Slab {
     }
 
     pub fn is_boundary(&self, index: usize, side: Direction) -> bool {
-
         let triangle_index = self.get_triangle_index(index);
-        
+
         // use triangle index not space index
         match side {
-            Direction::Left => {
-                triangle_index == 0
-            }
-            Direction::Right => {
-                triangle_index == self.ones() - 1
-            }
+            Direction::Left => triangle_index == 0,
+            Direction::Right => triangle_index == self.ones() - 1,
         }
-
     }
 }
 
@@ -216,11 +210,11 @@ impl<'a> IntoIterator for &'a Slab {
 ///
 /// An iterator over `Slab` objects, where each `Slab` represents one possible combination
 /// of ones and zeros of the specified length.
-pub fn all_slabs(num_ones: u32, num_zeros: u32) -> impl Iterator<Item = Slab> {
+pub fn all_slabs(num_ones: usize, num_zeros: usize) -> impl Iterator<Item = Slab> {
     let length = num_ones + num_zeros;
 
-    (0..2u128.pow(length))
-        .filter(move |x| x.count_ones() == num_ones)
+    (0..2u128.pow(length as u32))
+        .filter(move |x| x.count_ones() == num_ones as u32)
         .map(move |x| Slab {
             data: x,
             length: length as usize,
