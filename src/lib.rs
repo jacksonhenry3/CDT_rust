@@ -102,7 +102,7 @@ pub fn deficite_angle(cdt: &CDT, time_index: usize, space_index: usize, side: Di
 
     // println!("{} {}", number_of_edges, expected_number_of_edges);
 
-    (number_of_edges - expected_number_of_edges) as f64 * std::f64::consts::PI / 3.0
+    (number_of_edges - expected_number_of_edges) as f64 // * std::f64::consts::PI / 3.0
 }
 
 //create a cdt iterator that iterates over all possible cdt with a given volume profile using slab_iterator
@@ -153,7 +153,7 @@ pub fn cdt_iterator(volume_profile: Vec<usize>) -> impl Iterator<Item = CDT> {
 
 pub fn rsqrd_action(cdt: &CDT) -> f64 {
     let mut result = 0f64;
-    let lambda = 1f64;
+    let lambda = 0f64;
     //sum the deficite angles of all nodes, all nodes are here identified as all lower right nodes of true triangles
     for (time_index, space_index, _value) in
         cdt.triangles().into_iter().filter(|(_x, _t, value)| *value)

@@ -25,6 +25,7 @@ fn measure_boundaries(cdt: &CDT) -> usize {
 fn write_data(vol: usize) {
     let v_sqrt = (vol as f32).sqrt() as usize;
     let time = v_sqrt;
+    let time = 3;
 
     println!("{} ", time);
     let profiles = volume_profiles(vol, time);
@@ -53,8 +54,7 @@ fn write_data(vol: usize) {
 }
 
 fn main() {
-    let volume = 32;
-
+    let volume = 12;
     write_data(volume);
 
     // let a = constrained_sum_sample_pos(32, 32 * 32);

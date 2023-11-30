@@ -84,6 +84,14 @@ pub fn proportional_choose(n: usize, k: usize, scale_factor: f64) -> f64 {
     dp[n as usize][k as usize]
 }
 
+pub(crate) fn ln_choose(n: u64, k: u64) -> f64 {
+    let mut result = 0.0;
+    for i in 0..k {
+        result += (n as f64 - i as f64).ln() - (k as f64 - i as f64).ln();
+    }
+    result
+}
+
 // fn histogram(volume: usize) -> HashMap<usize, u32> {
 //     let profiles = volume_profiles(volume);
 //     let mut counts = HashMap::new();

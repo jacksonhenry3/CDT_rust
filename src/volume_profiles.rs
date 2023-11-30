@@ -53,6 +53,18 @@ impl VolumeProfile {
 
         VolumeProfile { profile, id }
     }
+
+    pub fn temporal_multiplicity(&self) -> usize {
+        // rotate the profile to the right untill its the same as the original
+        let mut profile_rotator = self.profile.clone();
+        profile_rotator.rotate_right(1);
+        let mut count = 1;
+        while profile_rotator != self.profile {
+            profile_rotator.rotate_right(1);
+            count += 1;
+        }
+        count
+    }
 }
 
 impl PartialEq for VolumeProfile {
@@ -97,35 +109,42 @@ pub fn volume_profiles(volume: usize, time_size: usize) -> HashSet<VolumeProfile
         final_result.insert(VolumeProfile::new(result.into()));
     }
 
+    // println!("{:?} profiles", final_result);
     final_result
 }
 
 // #[cached]
 pub fn num_cdts_in_profile(volume_profile: &VolumeProfile) -> u128 {
     let mut count = 1;
-    for i in 1..volume_profile.profile.len() {
+    let len = volume_profile.profile.len();
+    for i in 0..len {
         let n = volume_profile.profile[i];
-        let m = volume_profile.profile[i - 1];
+        let m = volume_profile.profile[(i + 1) % len];
         count *= (utils::choose(n + m, m) as u128);
     }
     count
 }
-pub fn num_cdts_in_profile_proportional(
-    volume_profile: &VolumeProfile,
-    proportionality: f64,
-) -> f64 {
-    let prof_vec: Vec<_> = volume_profile.profile.clone().into();
-    let a = prof_vec.windows(2).par_bridge().map(|window| {
-        let n = window[1];
-        let m = window[0];
-        utils::proportional_choose(n + m, m, proportionality)
-    });
 
-    // let values = a.clone().collect::<Vec<_>>();
-
-    // println!("{:?}", values);
-    a.reduce(|| 1f64, |a, b| a * b)
+pub fn ln_num_cdts_in_profile(volume_profile: &VolumeProfile) -> f64 {
+    let mut count = 0.0;
+    let len = volume_profile.profile.len();
+    for i in 0..len {
+        let n = volume_profile.profile[i] as u64;
+        let m = volume_profile.profile[(i + 1) % len] as u64;
+        count += utils::ln_choose(n + m, m);
+    }
+    count
 }
+// pub fn ln_num_cdts_in_profile(volume_profile: &VolumeProfile) -> f64 {
+//     let prof_vec: Vec<_> = volume_profile.profile.clone().into();
+//     let a = prof_vec.windows(2).par_bridge().map(|window| {
+//         let n = window[1] as u64;
+//         let m = window[0] as u64;
+//         utils::ln_choose(n + m, m)
+//     });
+
+//     a.sum::<f64>()
+// }
 
 pub fn constrained_sum_sample_pos(n: usize, total: usize) -> VecDeque<usize> {
     // This generates an unweighted random partition of n with a total sum of total.
@@ -146,18 +165,34 @@ pub fn constrained_sum_sample_pos(n: usize, total: usize) -> VecDeque<usize> {
 }
 
 pub fn weighted_random_partition(n: usize, total: usize) -> VecDeque<usize> {
+    let proportionality = 2.0;
     let mut base = vec![1; n];
     let mut weights = Vec::with_capacity(n);
     for _ in 0..total - n {
         weights.clear();
 
         for i in 0..n {
-            let vp = VolumeProfile {
+            let mut vp: VolumeProfile = VolumeProfile {
                 profile: base.clone().into(),
                 id: 0,
             };
-            let value = num_cdts_in_profile_proportional(&vp, 10e-29) as usize;
-            weights.push((value * base[i]) as u32);
+            vp.profile[i] += 1;
+            let ln_value = ln_num_cdts_in_profile(&vp);
+            let value = (ln_value - proportionality).exp();
+            // let value = num_cdts_in_profile(&vp) as f64;
+
+            // println!("{} {}", value1, value);
+            weights.push((value) as f32);
+        }
+
+        for (j, w) in weights.iter_mut().enumerate() {
+            *w *= (base[j] as f32);
+        }
+
+        let total = weights.iter().sum::<f32>();
+
+        for w in weights.iter_mut() {
+            *w /= total;
         }
 
         let builder = WalkerTableBuilder::new(&weights);
@@ -171,6 +206,7 @@ pub fn weighted_random_partition(n: usize, total: usize) -> VecDeque<usize> {
 
 pub fn random_volume_profile(volume: usize, time_size: usize) -> VolumeProfile {
     // let partition = weighted_random_partition(time_size, volume / 2);
+    // THIS IS WRONG BECOUSE THE PARTITION DOESNT INCLUDE PARITY CHANGES (it includes 123, but not 132)
     let partition = constrained_sum_sample_pos(time_size, volume / 2);
 
     // not calculculating the id leads to a ~10% speedup (IF COLLECTING IN TO A HASH TABLE)
