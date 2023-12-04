@@ -1,12 +1,10 @@
+use itertools::Itertools;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use rayon::prelude::*;
-use std::{
-    collections::{hash_map::DefaultHasher, HashSet, VecDeque},
-    hash::{Hash, Hasher},
-};
-
-use itertools::Itertools;
+use std::collections::{HashSet, VecDeque};
+use std::hash::{Hash, Hasher};
+use xxhash_rust::xxh3::xxh3_64;
 
 use weighted_rand::builder::*;
 
@@ -24,32 +22,21 @@ impl VolumeProfile {
         let mut profile_rotator = profile.clone();
 
         //sum of profile
-        let sum = profile.iter().sum::<usize>();
+        let mut id: u64 = 0;
 
-        let mut hasher = DefaultHasher::new();
-        sum.hash(&mut hasher);
-        let mut id = hasher.finish();
         for _ in 0..(profile.len()) {
-            let mut hasher = DefaultHasher::new();
-            profile_rotator.hash(&mut hasher);
-            let temp = hasher.finish();
-            // println!("{:?} : {} ", profile_rotator, temp);
-            id = id.wrapping_add(temp);
-            profile_rotator.rotate_left(1);
+            profile_rotator.rotate_right(1);
+            let hash_order = xxh3_64(profile_rotator.iter().join(":").as_bytes());
+            id = id.wrapping_add(hash_order);
         }
 
         let mut profile_rotator = profile.clone();
-        profile_rotator = profile_rotator.into_iter().rev().collect::<VecDeque<_>>();
-
+        profile_rotator.make_contiguous().reverse();
         for _ in 0..(profile.len()) {
-            let mut hasher = DefaultHasher::new();
-            profile_rotator.hash(&mut hasher);
-            let temp = hasher.finish();
-            // println!("{:?} : {} ", profile_rotator, temp);
-            id = id.wrapping_add(temp);
-            profile_rotator.rotate_left(1);
+            profile_rotator.rotate_right(1);
+            let hash_order = xxh3_64(profile_rotator.iter().join(":").as_bytes());
+            id = id.wrapping_add(hash_order);
         }
-        // println!("finished");
 
         VolumeProfile { profile, id }
     }
@@ -63,7 +50,9 @@ impl VolumeProfile {
             profile_rotator.rotate_right(1);
             count += 1;
         }
-        count
+
+        // the *2 comes from temporal reversal.
+        count * 2
     }
 }
 
@@ -106,6 +95,7 @@ pub fn volume_profiles(volume: usize, time_size: usize) -> HashSet<VolumeProfile
             result[i] = num - prev;
             prev = num;
         }
+        println!("{:?}", result);
         final_result.insert(VolumeProfile::new(result.into()));
     }
 
@@ -120,7 +110,7 @@ pub fn num_cdts_in_profile(volume_profile: &VolumeProfile) -> u128 {
     for i in 0..len {
         let n = volume_profile.profile[i];
         let m = volume_profile.profile[(i + 1) % len];
-        count *= (utils::choose(n + m, m) as u128);
+        count *= utils::choose(n + m, m) as u128;
     }
     count
 }
@@ -215,4 +205,23 @@ pub fn random_volume_profile(volume: usize, time_size: usize) -> VolumeProfile {
     //     profile: partition,
     //     id: 0,
     // }
+}
+
+pub fn random_sample(volume: usize, time_size: usize, num_samples: usize) -> Vec<VolumeProfile> {
+    let a: Vec<_> = (0..num_samples)
+        .map(|_| weighted_random_partition(time_size, 2 * volume))
+        .collect();
+
+    let mut partitions = Vec::new();
+
+    let maximum_temporal_multiplicity = 2 * time_size;
+
+    for sample in a.iter() {
+        let volume_profile = VolumeProfile::new(sample.clone().into());
+
+        for _ in 0..(maximum_temporal_multiplicity / &volume_profile.temporal_multiplicity()) {
+            partitions.push(volume_profile.clone());
+        }
+    }
+    partitions
 }

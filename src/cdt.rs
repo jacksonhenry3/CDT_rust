@@ -1,4 +1,5 @@
 use crate::slab::Slab;
+use crate::volume_profiles::{self, volume_profiles, VolumeProfile};
 use grafferous;
 
 use rand::seq::SliceRandom;
@@ -14,7 +15,8 @@ impl CDT {
         CDT { slabs }
     }
 
-    pub fn random(volume_profile: Vec<u8>) -> CDT {
+    pub fn random(volume_profile: VolumeProfile) -> CDT {
+        let volume_profile = volume_profile.profile;
         let mut rng = rand::thread_rng();
         let mut slabs = Vec::new();
         for (i, volume) in volume_profile.clone().into_iter().enumerate() {
@@ -239,4 +241,20 @@ impl std::ops::DerefMut for CDT {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.slabs
     }
+}
+
+fn measure_boundaries(cdt: &CDT) -> usize {
+    let mut max = f64::NAN;
+    let transition_triangles = cdt.all_transition_triangles();
+    transition_triangles.iter().count()
+}
+
+pub fn random_sample(time_size: usize, volume: usize, num_samples: usize) -> Vec<CDT> {
+    let mut result = Vec::new();
+    let volume_profiles = volume_profiles::random_sample(volume, time_size, num_samples);
+    for profile in volume_profiles {
+        result.push(CDT::random(profile));
+    }
+
+    result
 }

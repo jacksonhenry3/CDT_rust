@@ -1,5 +1,5 @@
 #![allow(unused)]
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::Write;
@@ -16,23 +16,12 @@ use cdt_rust::{
 use itertools::Itertools;
 use rayon::prelude::*;
 
-fn measure_boundaries(cdt: &CDT) -> usize {
-    let mut max = f64::NAN;
-    let transition_triangles = cdt.all_transition_triangles();
-    transition_triangles.iter().count()
-}
-
 fn write_data(vol: usize) {
-    let v_sqrt = (vol as f32).sqrt() as usize;
-    let time = v_sqrt;
     let time = 3;
 
-    println!("{} ", time);
     let profiles = volume_profiles(vol, time);
     let result = profiles.into_par_iter().map(|profile| {
-        println!("{:?}", profile);
         let profile_vec: Vec<usize> = profile.profile.into();
-
         let cdt_iterator = cdt_iterator(profile_vec.clone()).enumerate();
         cdt_iterator.map(|(i, cdt)| {
             let action = rsqrd_action(&cdt);
@@ -54,8 +43,8 @@ fn write_data(vol: usize) {
 }
 
 fn main() {
-    let volume = 12;
-    write_data(volume);
+    let volume = 32;
+    // write_data(volume);
 
     // let a = constrained_sum_sample_pos(32, 32 * 32);
     //generate a million constrained sum samples using rayon
