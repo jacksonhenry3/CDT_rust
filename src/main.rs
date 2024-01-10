@@ -37,14 +37,15 @@ fn write_data(vol: usize) {
     let mut w = std::io::BufWriter::new(&mut f);
 
     for (vp, s) in flat_result {
-        let vol_prof = vp.iter().join(":");
+        let vol_prof = vp.profile.iter().join(":");
         writeln!(w, "{:?},{}", vol_prof, s).unwrap();
     }
 }
 
 fn main() {
-    let volume = 32;
-    // write_data(volume);
+    let volume = 20;
+    let time_size = 3;
+    write_data(volume);
 
     // let a = constrained_sum_sample_pos(32, 32 * 32);
     //generate a million constrained sum samples using rayon

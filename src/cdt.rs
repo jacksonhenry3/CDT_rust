@@ -42,12 +42,12 @@ impl CDT {
         CDT::new((0..time_size).map(|_| slab_data.clone()).collect())
     }
 
-    pub fn volume_profile(&self) -> Vec<usize> {
+    pub fn volume_profile(&self) -> VolumeProfile {
         let mut result = vec![0; self.slabs.len()];
         for (i, slab) in self.iter().enumerate() {
             result[i] = slab.ones();
         }
-        result
+        VolumeProfile::new(result.into())
     }
 
     pub fn number_of_triangles(&self) -> usize {

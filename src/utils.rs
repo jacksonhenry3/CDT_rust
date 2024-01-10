@@ -49,7 +49,10 @@ pub fn choose(n: usize, k: usize) -> usize {
     if k > n {
         return 0;
     }
-    choose(n - 1, k - 1) + choose(n - 1, k)
+    match choose(n - 1, k - 1).checked_add(choose(n - 1, k)) {
+        Some(x) => x,
+        None => usize::MAX,
+    }
 }
 
 pub fn binomial_coefficient(n: u64, k: u64) -> u64 {

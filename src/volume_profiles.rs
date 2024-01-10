@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use rand::seq::SliceRandom;
-use rand::thread_rng;
+use rand::{thread_rng, Rng};
 use rayon::prelude::*;
 use std::collections::{HashSet, VecDeque};
 use std::hash::{Hash, Hasher};
@@ -54,6 +54,105 @@ impl VolumeProfile {
         // the *2 comes from temporal reversal.
         count * 2
     }
+
+    pub fn to_canonical_order(&mut self) {
+        //rotate the the profile so that it is in the smallest alphanumeric order
+        let mut profile_rotator = self.profile.clone();
+        let mut min_profile = self.profile.clone();
+        for _ in 0..(self.profile.len()) {
+            profile_rotator.rotate_right(1);
+            if profile_rotator < min_profile {
+                min_profile = profile_rotator.clone();
+            }
+        }
+
+        let mut profile_rotator = min_profile.clone();
+        profile_rotator.make_contiguous().reverse();
+        for _ in 0..(self.profile.len()) {
+            profile_rotator.rotate_right(1);
+            if profile_rotator < min_profile {
+                min_profile = profile_rotator.clone();
+            }
+        }
+
+        self.profile = min_profile;
+    }
+}
+
+pub fn step(volume_profile: &VolumeProfile) -> VolumeProfile {
+    let mut profile = volume_profile.profile.clone();
+
+    // first create a list of integers 1-len and permute them randomly
+    let mut rng = thread_rng();
+    let mut indices: Vec<usize> = (0..volume_profile.profile.len()).collect();
+    indices.shuffle(&mut rng);
+
+    // pair each index with the next index
+    let pairs = indices.chunks(2);
+
+    for pair in pairs {
+        if pair.len() == 1 {
+            break;
+        }
+        let i = pair[0];
+        let j = pair[1];
+        let perturbation_amount = rng.gen_range(0..=2);
+
+        // if the perturbation amount is greater than or equal to the size of profile[i] reduce the perturbation to the size of profile[i]-1
+        let perturbation_amount = perturbation_amount.min(profile[i] - 1);
+
+        profile[i] -= perturbation_amount;
+        profile[j] += perturbation_amount;
+    }
+
+    VolumeProfile::new(profile)
+    // VolumeProfile { profile, id: 0 } // we shouldnt need to calculate ID here, and this speeds things up.
+}
+
+pub fn acceptance_function(
+    old_profile: VolumeProfile,
+    new_profile: VolumeProfile,
+) -> VolumeProfile {
+    let old_ln_num_cdts = ln_num_cdts_in_profile(&old_profile);
+    let new_ln_num_cdts = ln_num_cdts_in_profile(&new_profile);
+
+    let ln_acceptance = new_ln_num_cdts - old_ln_num_cdts;
+    let acceptance = ln_acceptance.exp();
+
+    //random number between 0 and 1
+    let random_number = rand::thread_rng().gen_range(0.0..1.0);
+
+    if acceptance > random_number {
+        new_profile
+    } else {
+        old_profile
+    }
+}
+
+pub fn generate_sample_profile(initial_state: VolumeProfile, num_steps: usize) -> VolumeProfile {
+    let mut current_state = initial_state;
+    for _ in 0..num_steps {
+        let proposed_vp = step(&current_state);
+        current_state = acceptance_function(current_state, proposed_vp);
+    }
+    current_state
+}
+
+pub fn volume_profile_samples(
+    initial_state: VolumeProfile,
+    num_steps: usize,
+    num_samples: usize,
+) -> Vec<VolumeProfile> {
+    let mut current_state = initial_state;
+    let mut samples = Vec::new();
+    for _ in 0..num_samples {
+        for _ in 0..num_steps {
+            let proposed_vp = step(&current_state);
+            current_state = acceptance_function(current_state, proposed_vp);
+        }
+        samples.push(current_state.clone());
+    }
+    samples
 }
 
 impl PartialEq for VolumeProfile {
@@ -95,7 +194,6 @@ pub fn volume_profiles(volume: usize, time_size: usize) -> HashSet<VolumeProfile
             result[i] = num - prev;
             prev = num;
         }
-        println!("{:?}", result);
         final_result.insert(VolumeProfile::new(result.into()));
     }
 
@@ -105,12 +203,15 @@ pub fn volume_profiles(volume: usize, time_size: usize) -> HashSet<VolumeProfile
 
 // #[cached]
 pub fn num_cdts_in_profile(volume_profile: &VolumeProfile) -> u128 {
-    let mut count = 1;
+    let mut count = 1u128;
     let len = volume_profile.profile.len();
     for i in 0..len {
         let n = volume_profile.profile[i];
         let m = volume_profile.profile[(i + 1) % len];
-        count *= utils::choose(n + m, m) as u128;
+        count = match count.checked_mul(utils::choose(n + m, m) as u128) {
+            Some(x) => x,
+            None => u128::MAX,
+        };
     }
     count
 }
@@ -155,11 +256,15 @@ pub fn constrained_sum_sample_pos(n: usize, total: usize) -> VecDeque<usize> {
 }
 
 pub fn weighted_random_partition(n: usize, total: usize) -> VecDeque<usize> {
-    let proportionality = 2.0;
     let mut base = vec![1; n];
-    let mut weights = Vec::with_capacity(n);
-    for _ in 0..total - n {
-        weights.clear();
+    let mut weights = vec![0.0; n];
+
+    for INDEX in 0..total - n {
+        let mut total = 0.0;
+        let proportionality = num_cdts_in_profile(&VolumeProfile {
+            profile: base.clone().into(),
+            id: 0,
+        }) as f64;
 
         for i in 0..n {
             let mut vp: VolumeProfile = VolumeProfile {
@@ -168,22 +273,22 @@ pub fn weighted_random_partition(n: usize, total: usize) -> VecDeque<usize> {
             };
             vp.profile[i] += 1;
             let ln_value = ln_num_cdts_in_profile(&vp);
-            let value = (ln_value - proportionality).exp();
-            // let value = num_cdts_in_profile(&vp) as f64;
-
-            // println!("{} {}", value1, value);
-            weights.push((value) as f32);
+            let value = ((ln_value - f64::ln(proportionality)).exp() as f32) * (base[i] as f32);
+            weights[i] = value;
+            total += value;
         }
+        let max_value = weights.iter().cloned().fold(None, |acc, x| match acc {
+            None => Some(x),
+            Some(max) => Some(x.max(max)),
+        });
 
-        for (j, w) in weights.iter_mut().enumerate() {
-            *w *= (base[j] as f32);
-        }
+        let max_value = max_value.unwrap();
+        println!("{:?}", max_value);
+        println!("{:?}", proportionality);
 
-        let total = weights.iter().sum::<f32>();
+        weights = weights.iter().map(|x| x / max_value).collect();
 
-        for w in weights.iter_mut() {
-            *w /= total;
-        }
+        println!("{:?}", weights);
 
         let builder = WalkerTableBuilder::new(&weights);
         let wa_table = builder.build();
@@ -209,7 +314,11 @@ pub fn random_volume_profile(volume: usize, time_size: usize) -> VolumeProfile {
 
 pub fn random_sample(volume: usize, time_size: usize, num_samples: usize) -> Vec<VolumeProfile> {
     let a: Vec<_> = (0..num_samples)
-        .map(|_| weighted_random_partition(time_size, 2 * volume))
+        // .into_par_iter()
+        .map(|x| {
+            println!("{:?}", x);
+            weighted_random_partition(time_size, 2 * volume)
+        })
         .collect();
 
     let mut partitions = Vec::new();
