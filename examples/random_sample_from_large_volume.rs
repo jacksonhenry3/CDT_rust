@@ -12,14 +12,18 @@ use std::io::BufWriter;
 use std::io::Write;
 
 fn main() {
-    let mut initial_volume_profile = VolumeProfile::new(vec![3, 3, 4].into());
+    let initial_volume_profile = VolumeProfile::new(vec![3, 3, 4].into());
 
     println!("{:?}", initial_volume_profile);
-    let initial_volume_profile = generate_sample_profile(initial_volume_profile, 10);
+    let initial_volume_profile = generate_sample_profile(initial_volume_profile, 1000);
 
-    let samples = volume_profile_samples(initial_volume_profile, 100, 100_000);
+    println!(
+        "Initial volume profile generated {:?}",
+        initial_volume_profile
+    );
+    let samples = volume_profile_samples(initial_volume_profile, 10, 63_872);
 
-    println!("{:?}", "DONE");
+    println!("Sample generated");
 
     let vol = 20;
 

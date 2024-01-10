@@ -52,6 +52,20 @@ impl VolumeProfile {
         }
 
         // the *2 comes from temporal reversal.
+        // if the profile is the same forward and backward, then the we dont multiply by 2
+
+        // check if the profile is the same forward and backward
+        let mut profile_rotator = self.profile.clone();
+        profile_rotator.make_contiguous().reverse();
+
+        // check if any rotations are the same as the original
+        for _ in 0..(self.profile.len()) {
+            profile_rotator.rotate_right(1);
+            if profile_rotator == self.profile {
+                return count;
+            }
+        }
+
         count * 2
     }
 
@@ -96,10 +110,9 @@ pub fn step(volume_profile: &VolumeProfile) -> VolumeProfile {
         }
         let i = pair[0];
         let j = pair[1];
-        let perturbation_amount = rng.gen_range(0..=2);
 
         // if the perturbation amount is greater than or equal to the size of profile[i] reduce the perturbation to the size of profile[i]-1
-        let perturbation_amount = perturbation_amount.min(profile[i] - 1);
+        let perturbation_amount = 1.min(profile[i] - 1);
 
         profile[i] -= perturbation_amount;
         profile[j] += perturbation_amount;
@@ -113,11 +126,19 @@ pub fn acceptance_function(
     old_profile: VolumeProfile,
     new_profile: VolumeProfile,
 ) -> VolumeProfile {
-    let old_ln_num_cdts = ln_num_cdts_in_profile(&old_profile);
-    let new_ln_num_cdts = ln_num_cdts_in_profile(&new_profile);
+    // let old_ln_num_cdts = ln_num_cdts_in_profile(&old_profile);
+    // let new_ln_num_cdts = ln_num_cdts_in_profile(&new_profile);
 
-    let ln_acceptance = new_ln_num_cdts - old_ln_num_cdts;
-    let acceptance = ln_acceptance.exp();
+    // let ln_acceptance = new_ln_num_cdts - old_ln_num_cdts;
+    // let acceptance = ln_acceptance.exp() * (old_profile.temporal_multiplicity() as f64)
+    //     / (new_profile.temporal_multiplicity() as f64);
+
+    let old_num_cdts = num_cdts_in_profile(&old_profile);
+    let new_num_cdts = num_cdts_in_profile(&new_profile);
+
+    let acceptance = new_num_cdts as f64 / old_num_cdts as f64;
+    let acceptance = acceptance * (old_profile.temporal_multiplicity() as f64)
+        / (new_profile.temporal_multiplicity() as f64);
 
     //random number between 0 and 1
     let random_number = rand::thread_rng().gen_range(0.0..1.0);
