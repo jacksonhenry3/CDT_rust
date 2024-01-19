@@ -3,7 +3,7 @@ use itertools::Itertools;
 use crate::Direction;
 use std::{
     fmt,
-    ops::{Deref, DerefMut, Index, Not},
+    ops::{Deref, DerefMut, Not},
 };
 
 /// A slab is a sequence of 1s and 0s, where the 1s represent upwards pointing triangles and the 0s represent downwards pointing triangles.
@@ -14,7 +14,7 @@ pub struct Slab {
 
 impl Slab {
     pub fn new(data: Vec<bool>) -> Slab {
-        Slab { data: data }
+        Slab { data }
     }
 
     pub fn count_true(&self) -> usize {

@@ -1,15 +1,14 @@
 // run this with cargo r -r --example random_sample_from_large_volume
 
 use cdt_rust::volume_profiles::{
-    self, acceptance_function, generate_sample_profile, step, volume_profile_samples,
-    volume_profiles, VolumeProfile,
+    generate_sample_profile, volume_profile_samples, VolumeProfile,
 };
 
-use cdt_rust::{self, cdt, utils, volume_profiles::weighted_random_partition};
+use cdt_rust::{self, cdt};
 use itertools::Itertools;
 use rayon::prelude::*;
 use std::fs::File;
-use std::io::BufWriter;
+
 use std::io::Write;
 
 fn main() {
@@ -28,7 +27,7 @@ fn main() {
     let mut w = std::io::BufWriter::new(&mut f);
 
     println!("Calculating actions of {}", samples.len());
-    let actions = samples.par_iter_mut().enumerate().map(|(i, mut vp)| {
+    let actions = samples.par_iter_mut().enumerate().map(|(i, vp)| {
         // println!("calculating action for the {:?} vp", i);
         vp.to_canonical_order();
 

@@ -3,7 +3,7 @@ use rand::seq::SliceRandom;
 use rand::{thread_rng, Rng};
 use rayon::prelude::*;
 use std::collections::{HashSet, VecDeque};
-use std::hash::{Hash, Hasher};
+use std::hash::{Hash};
 use xxhash_rust::xxh3::xxh3_64;
 
 use weighted_rand::builder::*;
@@ -320,7 +320,7 @@ pub fn weighted_random_partition(n: usize, total: usize) -> VecDeque<usize> {
     let mut base = vec![1; n];
     let mut weights = vec![0.0; n];
 
-    for INDEX in 0..total - n {
+    for _INDEX in 0..total - n {
         let mut total = 0.0;
         let proportionality = num_cdts_in_profile(&VolumeProfile {
             profile: base.clone().into(),
@@ -387,7 +387,7 @@ pub fn random_sample(volume: usize, time_size: usize, num_samples: usize) -> Vec
     let maximum_temporal_multiplicity = 2 * time_size;
 
     for sample in a.iter() {
-        let volume_profile = VolumeProfile::new(sample.clone().into());
+        let volume_profile = VolumeProfile::new(sample.clone());
 
         for _ in 0..(maximum_temporal_multiplicity / &volume_profile.temporal_multiplicity()) {
             partitions.push(volume_profile.clone());

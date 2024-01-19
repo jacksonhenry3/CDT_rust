@@ -2,10 +2,10 @@
 #![allow(dead_code)]
 
 use cached::proc_macro::cached;
-use std::collections::HashMap;
+
 
 use crate::cdt::CDT;
-use crate::volume_profiles::{num_cdts_in_profile, volume_profiles};
+
 
 fn spatial_multiplicity(cdt: &CDT) -> i32 {
     let g = cdt.to_graph();
@@ -72,10 +72,10 @@ pub fn binomial_coefficient(n: u64, k: u64) -> u64 {
 }
 
 pub fn proportional_choose(n: usize, k: usize, scale_factor: f64) -> f64 {
-    let mut dp = vec![vec![0f64; k as usize + 1]; n as usize + 1];
+    let mut dp = vec![vec![0f64; k + 1]; n + 1];
 
-    for i in 0..=n as usize {
-        for j in 0..=std::cmp::min(i, k as usize) {
+    for i in 0..=n {
+        for j in 0..=std::cmp::min(i, k) {
             if j == 0 || j == i {
                 dp[i][j] = scale_factor;
             } else {
@@ -84,7 +84,7 @@ pub fn proportional_choose(n: usize, k: usize, scale_factor: f64) -> f64 {
         }
     }
 
-    dp[n as usize][k as usize]
+    dp[n][k]
 }
 
 pub(crate) fn ln_choose(n: u64, k: u64) -> f64 {
