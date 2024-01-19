@@ -19,17 +19,14 @@ impl CDT {
         CDT { slabs }
     }
 
-    pub fn random(volume_profile: VolumeProfile) -> CDT {
-        let volume_profile = volume_profile.profile;
+    pub fn random(volume_profile: &VolumeProfile) -> CDT {
+        let length = volume_profile.profile.len();
         let mut rng = rand::thread_rng();
         let mut slabs = Vec::new();
-        for (i, volume) in volume_profile.clone().into_iter().enumerate() {
+        for (i, volume) in volume_profile.profile.iter().enumerate() {
             //create a vec with the correct number of 1s and 0s
-            let mut slab_data = vec![true; volume];
-            slab_data.append(&mut vec![
-                false;
-                volume_profile[(i + 1) % volume_profile.len()]
-            ]);
+            let mut slab_data = vec![true; *volume];
+            slab_data.append(&mut vec![false; volume_profile.profile[(i + 1) % length]]);
 
             slab_data.shuffle(&mut rng);
 

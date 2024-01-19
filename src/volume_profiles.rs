@@ -4,6 +4,7 @@ use rand::{thread_rng, Rng};
 use rayon::prelude::*;
 use std::collections::{HashSet, VecDeque};
 use std::hash::Hash;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use xxhash_rust::xxh3::xxh3_64;
 
 use crate::utils;
@@ -168,11 +169,18 @@ pub fn volume_profile_samples(
     let num_threads = rayon::current_num_threads();
     let chunk_size = num_samples / num_threads;
 
+    let mut progress_counter = AtomicUsize::new(0);
+
+    println!("Generating samples");
     let samples: Vec<Vec<VolumeProfile>> = (0..num_threads)
         .into_par_iter()
         .map(|i| {
+            let progress = progress_counter.fetch_add(1, Ordering::SeqCst);
+            let progress_percent = 100.0 * progress as f64 / (num_threads * chunk_size) as f64;
+            print!("\r{:.2}%", progress_percent);
+
             let start_index = i * chunk_size;
-            let end_index = if i == 9 {
+            let end_index = if i == num_threads - 1 {
                 num_samples
             } else {
                 (i + 1) * chunk_size
