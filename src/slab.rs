@@ -1,30 +1,35 @@
-use itertools::Itertools;
-
 use crate::Direction;
+use itertools::Itertools;
 use std::{
     fmt,
     ops::{Deref, DerefMut, Not},
 };
 
-/// A slab is a sequence of 1s and 0s, where the 1s represent upwards pointing triangles and the 0s represent downwards pointing triangles.
+/// Represents a slab, which is a sequence of 1s and 0s.
+/// The 1s represent upwards pointing triangles and the 0s represent downwards pointing triangles.
 #[derive(Debug, Eq, PartialOrd, Ord, Clone, PartialEq, Hash)]
 pub struct Slab {
     pub data: Vec<bool>,
 }
 
 impl Slab {
+    /// Creates a new slab with the given data.
     pub fn new(data: Vec<bool>) -> Slab {
         Slab { data }
     }
 
+    /// Returns the count of true values in the slab.
     pub fn count_true(&self) -> usize {
         self.data.iter().filter(|&b| *b).count()
     }
 
+    /// Returns the count of false values in the slab.
     pub fn count_false(&self) -> usize {
         self.data.iter().filter(|&b| !*b).count()
     }
 
+    /// Returns a string representation of the slab.
+    /// Upwards pointing triangles are represented by '^' and downwards pointing triangles are represented by 'v'.
     pub fn string(&self) -> String {
         let mut result = String::new();
         for value in &self.data {
@@ -37,10 +42,8 @@ impl Slab {
         result
     }
 
-    //get triangle index (how many other triangles of the same type have already appeared in that slab) from time and space index
+    /// Returns the index of the triangle at the given space index.
     pub fn get_triangle_index(&self, space_index: usize) -> usize {
-        // assert!(space_index < self.length, "index out of bounds");
-        //if the triangle is a zero type count the number of zeros in the slab to the left of the triangle using sum_binary_digit_range
         if !self[space_index] {
             (self)[..space_index].iter().filter(|&b| !*b).count()
         } else {
@@ -48,15 +51,13 @@ impl Slab {
         }
     }
 
+    /// Returns the spatial index of the triangle in the slab with the given triangle index and type.
     pub fn get_triangle_in_slab_by_index(
         &self,
         triangle_index: usize,
         triangle_type: bool,
     ) -> usize {
         let mut sum = 0;
-
-        //consider folding this using an accumulant pattern
-
         for i in 0..self.len() {
             if self[i] == triangle_type {
                 sum += 1;
@@ -65,18 +66,15 @@ impl Slab {
                 return i;
             }
         }
-
-        //debug messages
         println!("triangle index: {}", triangle_index);
         println!("triangle type: {}", triangle_type);
         println!("slab: {}", self);
         panic!("triangle index out of bounds");
     }
 
+    /// Checks if the triangle at the given index is a boundary triangle on the specified side.
     pub fn is_boundary(&self, index: usize, side: Direction) -> bool {
         let triangle_index = self.get_triangle_index(index);
-
-        // use triangle index not space index
         match side {
             Direction::Left => triangle_index == 0,
             Direction::Right => triangle_index == self.count_true() - 1,
@@ -107,7 +105,6 @@ impl Not for Slab {
     }
 }
 
-// impl into_iter for Slab {
 impl IntoIterator for &Slab {
     type Item = bool;
     type IntoIter = std::vec::IntoIter<Self::Item>;
@@ -129,13 +126,11 @@ impl Not for &Slab {
 
 impl fmt::Display for Slab {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match write!(f, "{}", self.string()) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(e),
-        }
+        write!(f, "{}", self.string())
     }
 }
 
+/// Returns an iterator over all possible slabs with the given number of true and false values.
 pub fn all_slabs(num_trues: usize, num_falses: usize) -> impl Iterator<Item = Slab> {
     let mut data = vec![false; num_falses];
     data.extend(vec![true; num_trues]);

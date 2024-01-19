@@ -207,8 +207,7 @@ pub fn volume_profile_samples(
     println!("Combining samples");
     let num_samples_actual = samples.len();
     let mut result = Vec::with_capacity(num_samples_actual);
-    for (i, thread_sample) in samples.into_iter().enumerate() {
-        print!("\rCombining thread {} samples", i / num_samples_actual);
+    for thread_sample in samples.into_iter() {
         result.extend(thread_sample);
     }
 
