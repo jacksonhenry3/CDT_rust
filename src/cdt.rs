@@ -7,6 +7,7 @@ use rand::Rng;
 /// A CDT is a sequence of slabs, where the last slab is connected to the first slab.
 #[derive(Debug, Eq, PartialOrd, Ord, Clone, PartialEq, Hash)]
 pub struct CDT {
+    // This should probably be an array, not a slice, becouse it doesnt change size at run time. The size can be defined in a const.
     pub slabs: Vec<Slab>,
 }
 
@@ -45,17 +46,17 @@ impl CDT {
     pub fn volume_profile(&self) -> VolumeProfile {
         let mut result = vec![0; self.slabs.len()];
         for (i, slab) in self.iter().enumerate() {
-            result[i] = slab.ones();
+            result[i] = slab.count_true();
         }
         VolumeProfile::new(result.into())
     }
 
     pub fn number_of_triangles(&self) -> usize {
-        2 * self.slabs.iter().fold(0, |acc, x| acc + x.ones())
+        2 * self.slabs.iter().fold(0, |acc, x| acc + x.count_true())
     }
 
     pub fn random_triangle(&self) -> (usize, usize) {
-        let total_length = &self.slabs.iter().fold(0, |acc, x| acc + x.length);
+        let total_length = &self.slabs.iter().fold(0, |acc, x| acc + x.len());
 
         //random number between 0 and total_length
         let index = rand::thread_rng().gen_range(0..*total_length);
@@ -65,11 +66,11 @@ impl CDT {
         let mut time_index = 0;
         let mut space_index = 0;
         for slab in &self.slabs {
-            if sum + slab.length > index {
+            if sum + slab.len() > index {
                 space_index = index - sum;
                 break;
             }
-            sum += slab.length;
+            sum += slab.len();
             time_index += 1;
         }
 
@@ -114,7 +115,7 @@ impl CDT {
 
         for (time_index, slab) in self.slabs.iter().enumerate() {
             for (i, value) in slab.into_iter().enumerate() {
-                if value != slab[(i + 1) % slab.length] {
+                if value != slab[(i + 1) % slab.len()] {
                     different_triangles.push((time_index, i));
                 }
             }
@@ -145,7 +146,7 @@ impl CDT {
         //check that each past sslab has the same number of ones as its corresponding future slab has zeros
         for (i, slab) in self.slabs.iter().enumerate() {
             let other_slab = &self.slabs[(i + 1) % self.slabs.len()];
-            if slab.zeros() != other_slab.ones() {
+            if slab.count_false() != other_slab.count_true() {
                 return false;
             }
         }
@@ -162,8 +163,8 @@ impl CDT {
 
         for (t, spatial_slice) in self.slabs.iter().enumerate() {
             let t = t as i32;
-            let n = spatial_slice.ones() as i32;
-            let m = spatial_slice.zeros() as i32;
+            let n = spatial_slice.count_true() as i32;
+            let m = spatial_slice.count_false() as i32;
             for triangle in spatial_slice {
                 if triangle {
                     xp += 1;

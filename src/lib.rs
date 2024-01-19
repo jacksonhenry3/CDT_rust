@@ -43,7 +43,7 @@ pub fn number_of_edges_arround_a_node(
     };
 
     //count the number of spatial neighbors to the right are of a different type
-    let space_size = cdt.slabs[time_index].length;
+    let space_size = cdt.slabs[time_index].len();
     let mut next_space_index_option = next_index(space_index, space_size);
 
     while let Some(next_space_index) = next_space_index_option {
@@ -64,7 +64,7 @@ pub fn number_of_edges_arround_a_node(
     if let Some((other_time_index, other_space_index)) =
         cdt.get_temporal_pair(time_index, space_index)
     {
-        let other_space_size = cdt.slabs[other_time_index].length;
+        let other_space_size = cdt.slabs[other_time_index].len();
         let mut other_next_space_index_option = next_index(other_space_index, other_space_size);
 
         while let Some(other_next_space_index) = other_next_space_index_option {

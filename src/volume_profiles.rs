@@ -159,21 +159,61 @@ pub fn generate_sample_profile(initial_state: VolumeProfile, num_steps: usize) -
     current_state
 }
 
+// use rayon par_chunk to generate samples in parallel better
 pub fn volume_profile_samples(
     initial_state: VolumeProfile,
     num_steps: usize,
     num_samples: usize,
 ) -> Vec<VolumeProfile> {
-    let mut current_state = initial_state;
-    let mut samples = Vec::new();
-    for _ in 0..num_samples {
-        for _ in 0..num_steps {
-            let proposed_vp = step(&current_state);
-            current_state = acceptance_function(current_state, proposed_vp);
-        }
-        samples.push(current_state.clone());
+    // use rayon to get the ideal number of threads
+    let num_threads = rayon::current_num_threads();
+    let chunk_size = num_samples / num_threads;
+
+    let samples: Vec<Vec<VolumeProfile>> = (0..num_threads)
+        .into_par_iter()
+        .map(|i| {
+            let start_index = i * chunk_size;
+            let end_index = if i == 9 {
+                num_samples
+            } else {
+                (i + 1) * chunk_size
+            };
+
+            let mut thread_samples = Vec::with_capacity(end_index - start_index);
+
+            let mut current_state = initial_state.clone();
+
+            for sim_index in start_index..end_index {
+                // print the thread index and sample progress as a percentage
+                if i == 0 {
+                    print!(
+                        "\rThread {} {:.2}%",
+                        i,
+                        100.0 * (sim_index - start_index) as f64 / (end_index - start_index) as f64
+                    );
+                }
+                for _ in 0..num_steps {
+                    let proposed_vp = step(&current_state);
+                    current_state = acceptance_function(current_state, proposed_vp);
+                }
+                thread_samples.push(current_state.clone());
+            }
+
+            thread_samples
+        })
+        .collect();
+
+    // explaoin
+    println!();
+    println!("Combining samples");
+    let num_samples_actual = samples.len();
+    let mut result = Vec::with_capacity(num_samples_actual);
+    for (i, thread_sample) in samples.into_iter().enumerate() {
+        print!("\rCombining thread {} samples", i / num_samples_actual);
+        result.extend(thread_sample);
     }
-    samples
+
+    result
 }
 
 impl PartialEq for VolumeProfile {

@@ -1,4 +1,5 @@
 #![allow(unused)]
+
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs::File;
 use std::io::BufWriter;
@@ -10,8 +11,8 @@ use cdt_rust::volume_profiles::{
     constrained_sum_sample_pos, num_cdts_in_profile, random_volume_profile, VolumeProfile,
 };
 use cdt_rust::{
-    cdt::CDT, cdt_iterator, rsqrd_action, slab::sum_binary_digit_range, utils::choose,
-    volume_profiles::non_cyclic_permutations, volume_profiles::volume_profiles,
+    cdt::CDT, cdt_iterator, rsqrd_action, utils::choose, volume_profiles::non_cyclic_permutations,
+    volume_profiles::volume_profiles,
 };
 use itertools::Itertools;
 use rayon::prelude::*;

@@ -7,34 +7,49 @@ use cdt_rust::volume_profiles::{
 
 use cdt_rust::{self, cdt, utils, volume_profiles::weighted_random_partition};
 use itertools::Itertools;
+use rayon::prelude::*;
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::Write;
 
 fn main() {
-    let initial_volume_profile = VolumeProfile::new(vec![3, 3, 4].into());
-
-    println!("{:?}", initial_volume_profile);
+    let side_length = 16;
+    let initial_volume_profile = VolumeProfile::new(vec![side_length; side_length].into());
     let initial_volume_profile = generate_sample_profile(initial_volume_profile, 1000);
 
-    println!(
-        "Initial volume profile generated {:?}",
-        initial_volume_profile
-    );
-    let samples = volume_profile_samples(initial_volume_profile, 10, 63_872);
+    let mut samples = volume_profile_samples(initial_volume_profile, side_length * 2, 100_000);
 
     println!("Sample generated");
 
-    let vol = 20;
+    let vol = side_length * side_length * 2;
 
     let path = format!("data/Volume_{}_statistical.csv", vol);
     let mut f = File::create(path).unwrap();
     let mut w = std::io::BufWriter::new(&mut f);
 
-    for mut vp in samples {
+    println!("Calculating actions of {}", samples.len());
+    let actions = samples.par_iter_mut().enumerate().map(|(i, mut vp)| {
+        // println!("calculating action for the {:?} vp", i);
         vp.to_canonical_order();
+
+        //  print the progress
+        if i % 1000 == 0 {
+            println!("{}", i);
+        }
+
+        // generate a random CDT with volumeprofile vp
+        let cdt = cdt::CDT::random(vp.clone());
+        let action = cdt_rust::rsqrd_action(&cdt);
+
         let vol_prof = vp.profile.make_contiguous().iter().join(":");
-        writeln!(w, "{:?},{}", vol_prof, 0).unwrap();
+        (vol_prof, action)
+
+        // vp
+    });
+
+    println!("Saving to file");
+    for (vol_prof, action) in actions.collect::<Vec<_>>() {
+        writeln!(w, "{:?},{}", vol_prof, action).unwrap();
     }
 
     // let cdts = cdt::random_sample(20, 20 * 20, 100);

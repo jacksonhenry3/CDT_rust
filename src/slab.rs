@@ -1,36 +1,40 @@
+use itertools::Itertools;
+
 use crate::Direction;
+use std::{
+    fmt,
+    ops::{Deref, DerefMut, Index, Not},
+};
 
 /// A slab is a sequence of 1s and 0s, where the 1s represent upwards pointing triangles and the 0s represent downwards pointing triangles.
 #[derive(Debug, Eq, PartialOrd, Ord, Clone, PartialEq, Hash)]
 pub struct Slab {
-    pub length: usize,
-    pub data: u128,
+    pub data: Vec<bool>,
 }
 
 impl Slab {
     pub fn new(data: Vec<bool>) -> Slab {
-        Slab {
-            length: data.len(),
-            data: bool_vec_to_integer(data),
-        }
+        Slab { data: data }
+    }
+
+    pub fn count_true(&self) -> usize {
+        self.data.iter().filter(|&b| *b).count()
+    }
+
+    pub fn count_false(&self) -> usize {
+        self.data.iter().filter(|&b| !*b).count()
     }
 
     pub fn string(&self) -> String {
         let mut result = String::new();
-        for i in 0..self.length {
-            result.push(if self[i] { '1' } else { '0' });
+        for value in &self.data {
+            if *value {
+                result.push('^');
+            } else {
+                result.push('v');
+            }
         }
         result
-    }
-
-    pub fn set(&mut self, index: usize, value: bool) {
-        // assert!(index < self.length, "index out of bounds");
-        let mask = 1 << index;
-        if value {
-            self.data |= mask;
-        } else {
-            self.data &= !mask;
-        }
     }
 
     //get triangle index (how many other triangles of the same type have already appeared in that slab) from time and space index
@@ -38,9 +42,9 @@ impl Slab {
         // assert!(space_index < self.length, "index out of bounds");
         //if the triangle is a zero type count the number of zeros in the slab to the left of the triangle using sum_binary_digit_range
         if !self[space_index] {
-            sum_binary_digit_range(!self.data, 0, space_index)
+            (self)[..space_index].iter().filter(|&b| !*b).count()
         } else {
-            sum_binary_digit_range(self.data, 0, space_index)
+            (self)[..space_index].iter().filter(|&b| *b).count()
         }
     }
 
@@ -53,7 +57,7 @@ impl Slab {
 
         //consider folding this using an accumulant pattern
 
-        for i in 0..self.length {
+        for i in 0..self.len() {
             if self[i] == triangle_type {
                 sum += 1;
             }
@@ -61,53 +65,12 @@ impl Slab {
                 return i;
             }
         }
+
         //debug messages
         println!("triangle index: {}", triangle_index);
         println!("triangle type: {}", triangle_type);
         println!("slab: {}", self);
         panic!("triangle index out of bounds");
-    }
-
-    pub fn insert(&mut self, index: usize, value: bool) {
-        // assert!(index < self.length, "index out of bounds");
-        // insert a 1 or 0 at a given index shifting values to either side
-        let slab_left_data = (self.data >> index) << index;
-        let slab_right_data = self.data - slab_left_data;
-        let new_slab_data = (slab_left_data << 1) + ((value as u128) << index) + slab_right_data;
-        self.data = new_slab_data;
-        self.length += 1;
-
-        assert!(self.length < 128, "slab length cannot be greater than 128")
-    }
-
-    pub fn remove(&mut self, index: usize) {
-        // assert!(index < self.length, "index out of bounds");
-        // remove a 1 or 0 at a given index shifting values to either side
-        let removed_value = !(1 << index) & self.data;
-        let left_data = (removed_value >> index) << index;
-        let right_data = removed_value - left_data;
-        let new_slab_data = (left_data >> 1) + right_data;
-        self.data = new_slab_data;
-        self.length -= 1;
-
-        //this is wrong, its not slab length its spatial slice length (3 ze5ros and 3 ones)
-        assert!(self.length >= 3, "slab length cannot be less than 3")
-    }
-
-    pub fn ones(&self) -> usize {
-        sum_binary_digit_range(self.data, 0, self.length)
-    }
-
-    pub fn zeros(&self) -> usize {
-        sum_binary_digit_range(!self.data, 0, self.length)
-    }
-
-    pub fn to_vec(&self) -> Vec<bool> {
-        let mut result = Vec::new();
-        for i in 0..self.length {
-            result.push(self[i]);
-        }
-        result
     }
 
     pub fn is_boundary(&self, index: usize, side: Direction) -> bool {
@@ -116,66 +79,21 @@ impl Slab {
         // use triangle index not space index
         match side {
             Direction::Left => triangle_index == 0,
-            Direction::Right => triangle_index == self.ones() - 1,
+            Direction::Right => triangle_index == self.count_true() - 1,
         }
     }
 }
 
-//impl Index
-impl std::ops::Index<usize> for Slab {
-    type Output = bool;
+impl Deref for Slab {
+    type Target = Vec<bool>;
 
-    fn index(&self, index: usize) -> &Self::Output {
-        let mask = 1 << index;
-        if (self.data & mask) == mask {
-            &true
-        } else {
-            &false
-        }
+    fn deref(&self) -> &Self::Target {
+        &self.data
     }
 }
 
-// display a slab as a string of 1s and 0s
-impl std::fmt::Display for Slab {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let mut v = String::new();
-        for value in self {
-            if value {
-                v.push('△');
-            } else {
-                v.push('▽');
-            }
-        }
-        write!(f, "{}", v)
-    }
-}
+// impl iter for &Slab
 
-pub fn bool_vec_to_integer(data: Vec<bool>) -> u128 {
-    let mut result = 0;
-    let mut pow = 0u32;
-
-    let mut iter = data.iter().rev().peekable();
-
-    while iter.peek().is_some() {
-        if let Some(i) = iter.position(|&x| x) {
-            pow += i as u32;
-            result += 2u128.pow(pow);
-            pow += 1;
-        }
-    }
-
-    result
-}
-
-pub fn sum_binary_digit_range(n: u128, start: usize, end: usize) -> usize {
-    let mut sum = 0;
-    for i in start..end {
-        sum += (n >> i) & 1;
-    }
-    sum as usize
-}
-
-//impl iter using to_vec
 impl IntoIterator for Slab {
     type Item = bool;
     type IntoIter = std::vec::IntoIter<Self::Item>;
@@ -195,28 +113,42 @@ impl<'a> IntoIterator for &'a Slab {
     }
 }
 
-/// Generates all possible slabs (combinations of ones and zeros) of a certain length.
-///
-/// This function generates an iterator over all possible combinations of ones and zeros
-/// of a certain length, where the number of o nes and zeros is specified by the parameters.
-/// The iterator yields `Slab` objects, where each `Slab` represents one possible combination.
-///
-/// # Parameters
-///
-/// * `num_ones`: The number of ones in the slab.
-/// * `num_zeros`: The number of zeros in the slab.
-///
-/// # Returns
-///
-/// An iterator over `Slab` objects, where each `Slab` represents one possible combination
-/// of ones and zeros of the specified length.
-pub fn all_slabs(num_ones: usize, num_zeros: usize) -> impl Iterator<Item = Slab> {
-    let length = num_ones + num_zeros;
+impl DerefMut for Slab {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.data
+    }
+}
 
-    (0..2u128.pow(length as u32))
-        .filter(move |x| x.count_ones() == num_ones as u32)
-        .map(move |x| Slab {
-            data: x,
-            length: length as usize,
-        })
+impl Not for Slab {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        let data = self.data.iter().map(|b| !b).collect();
+        Slab { data }
+    }
+}
+
+impl Not for &Slab {
+    type Output = Slab;
+
+    fn not(self) -> Self::Output {
+        Slab {
+            data: self.data.iter().map(|&b| !b).collect(),
+        }
+    }
+}
+
+impl fmt::Display for Slab {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.string());
+        Ok(())
+    }
+}
+
+pub fn all_slabs(num_trues: usize, num_falses: usize) -> impl Iterator<Item = Slab> {
+    let mut data = vec![false; num_falses];
+    data.extend(vec![true; num_trues]);
+    data.into_iter()
+        .permutations(num_trues + num_falses)
+        .map(|data| Slab { data })
 }
