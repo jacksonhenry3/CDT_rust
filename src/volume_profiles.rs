@@ -6,8 +6,6 @@ use std::collections::{HashSet, VecDeque};
 use std::hash::Hash;
 use xxhash_rust::xxh3::xxh3_64;
 
-use weighted_rand::builder::*;
-
 use crate::utils;
 
 //derive eq
@@ -16,6 +14,7 @@ pub struct VolumeProfile {
     pub profile: VecDeque<usize>,
     pub id: u64,
 }
+// Now that there is a canonical form here, a lot can be simplified.
 
 impl VolumeProfile {
     pub fn new(profile: VecDeque<usize>) -> VolumeProfile {

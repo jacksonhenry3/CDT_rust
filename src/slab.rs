@@ -92,27 +92,6 @@ impl Deref for Slab {
     }
 }
 
-// impl iter for &Slab
-
-impl IntoIterator for Slab {
-    type Item = bool;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.to_vec().into_iter()
-    }
-}
-
-//same thing but for &Slab
-impl<'a> IntoIterator for &'a Slab {
-    type Item = bool;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.to_vec().into_iter()
-    }
-}
-
 impl DerefMut for Slab {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.data
@@ -128,6 +107,16 @@ impl Not for Slab {
     }
 }
 
+// impl into_iter for Slab {
+impl IntoIterator for &Slab {
+    type Item = bool;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.data.clone().into_iter()
+    }
+}
+
 impl Not for &Slab {
     type Output = Slab;
 
@@ -140,8 +129,10 @@ impl Not for &Slab {
 
 impl fmt::Display for Slab {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.string());
-        Ok(())
+        match write!(f, "{}", self.string()) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e),
+        }
     }
 }
 

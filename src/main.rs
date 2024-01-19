@@ -7,9 +7,7 @@ use std::io::Write;
 use std::time::{self, Instant};
 use weighted_rand::builder::*;
 
-use cdt_rust::volume_profiles::{
-    constrained_sum_sample_pos, num_cdts_in_profile, random_volume_profile, VolumeProfile,
-};
+use cdt_rust::volume_profiles::{num_cdts_in_profile, VolumeProfile};
 use cdt_rust::{
     cdt::CDT, cdt_iterator, rsqrd_action, utils::choose, volume_profiles::non_cyclic_permutations,
     volume_profiles::volume_profiles,

@@ -1,3 +1,6 @@
+// ignore unused
+#![allow(unused)]
+
 use crate::slab::Slab;
 use crate::volume_profiles::{self, VolumeProfile};
 use grafferous;
@@ -164,8 +167,8 @@ impl CDT {
             let t = t as i32;
             let n = spatial_slice.count_true() as i32;
             let m = spatial_slice.count_false() as i32;
-            for triangle in spatial_slice {
-                if triangle {
+            for triangle in spatial_slice.data.iter() {
+                if *triangle {
                     xp += 1;
                     xp = xp.rem_euclid(n);
                     g.add_directed_edge((t, xp), ((t + 1).rem_euclid(time_size), xf));
@@ -247,14 +250,4 @@ fn measure_boundaries(cdt: &CDT) -> usize {
     let _max = f64::NAN;
     let transition_triangles = cdt.all_transition_triangles();
     transition_triangles.len()
-}
-
-pub fn random_sample(time_size: usize, volume: usize, num_samples: usize) -> Vec<CDT> {
-    let mut result = Vec::new();
-    let volume_profiles = volume_profiles::random_sample(volume, time_size, num_samples);
-    for profile in volume_profiles {
-        result.push(CDT::random(profile));
-    }
-
-    result
 }
