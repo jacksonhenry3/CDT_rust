@@ -8,7 +8,7 @@ use std::io::Write;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 fn main() {
-    let cdt = cdt::CDT::random(&VolumeProfile::new(vec![10, 10, 10, 10, 10].into()));
+    let cdt = cdt::CDT::random(&VolumeProfile::new(vec![10, 10, 3, 10, 10].into()));
 
     println!("{}", cdt);
     println!("{:?}", cdt_rust::eh_action(&cdt));

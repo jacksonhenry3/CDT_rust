@@ -11,86 +11,15 @@ use crate::utils;
 
 //derive eq
 // probably dont need calc id when running a large sim, consider directly geenerating vp instead of using new.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub struct VolumeProfile {
-    pub profile: VecDeque<usize>,
-    pub id: u64,
+    pub profile: Vec<usize>,
 }
 // Now that there is a canonical form here, a lot can be simplified.
 
 impl VolumeProfile {
-    pub fn new(profile: VecDeque<usize>) -> VolumeProfile {
-        let mut profile_rotator = profile.clone();
-
-        //sum of profile
-        let mut id: u64 = 0;
-
-        for _ in 0..(profile.len()) {
-            profile_rotator.rotate_right(1);
-            let hash_order = xxh3_64(profile_rotator.iter().join(":").as_bytes());
-            id = id.wrapping_add(hash_order);
-        }
-
-        let mut profile_rotator = profile.clone();
-        profile_rotator.make_contiguous().reverse();
-        for _ in 0..(profile.len()) {
-            profile_rotator.rotate_right(1);
-            let hash_order = xxh3_64(profile_rotator.iter().join(":").as_bytes());
-            id = id.wrapping_add(hash_order);
-        }
-
-        VolumeProfile { profile, id }
-    }
-
-    pub fn temporal_multiplicity(&self) -> usize {
-        // rotate the profile to the right untill its the same as the original
-        let mut profile_rotator = self.profile.clone();
-        profile_rotator.rotate_right(1);
-        let mut count = 1;
-        while profile_rotator != self.profile {
-            profile_rotator.rotate_right(1);
-            count += 1;
-        }
-
-        // the *2 comes from temporal reversal.
-        // if the profile is the same forward and backward, then the we dont multiply by 2
-
-        // check if the profile is the same forward and backward
-        let mut profile_rotator = self.profile.clone();
-        profile_rotator.make_contiguous().reverse();
-
-        // check if any rotations are the same as the original
-        for _ in 0..(self.profile.len()) {
-            profile_rotator.rotate_right(1);
-            if profile_rotator == self.profile {
-                return count;
-            }
-        }
-
-        count * 2
-    }
-
-    pub fn to_canonical_order(&mut self) {
-        //rotate the the profile so that it is in the smallest alphanumeric order
-        let mut profile_rotator = self.profile.clone();
-        let mut min_profile = self.profile.clone();
-        for _ in 0..(self.profile.len()) {
-            profile_rotator.rotate_right(1);
-            if profile_rotator < min_profile {
-                min_profile = profile_rotator.clone();
-            }
-        }
-
-        let mut profile_rotator = min_profile.clone();
-        profile_rotator.make_contiguous().reverse();
-        for _ in 0..(self.profile.len()) {
-            profile_rotator.rotate_right(1);
-            if profile_rotator < min_profile {
-                min_profile = profile_rotator.clone();
-            }
-        }
-
-        self.profile = min_profile;
+    pub fn new(profile: Vec<usize>) -> VolumeProfile {
+        VolumeProfile { profile }
     }
 }
 
@@ -122,26 +51,17 @@ pub fn step(volume_profile: &VolumeProfile) -> VolumeProfile {
     }
 
     // VolumeProfile::new(profile)
-    VolumeProfile { profile, id: 0 } // we shouldnt need to calculate ID here, and this speeds things up.
+    VolumeProfile { profile } // we shouldnt need to calculate ID here, and this speeds things up.
 }
 
 pub fn acceptance_function(
     old_profile: VolumeProfile,
     new_profile: VolumeProfile,
 ) -> VolumeProfile {
-    // let old_ln_num_cdts = ln_num_cdts_in_profile(&old_profile);
-    // let new_ln_num_cdts = ln_num_cdts_in_profile(&new_profile);
-
-    // let ln_acceptance = new_ln_num_cdts - old_ln_num_cdts;
-    // let acceptance = ln_acceptance.exp() * (old_profile.temporal_multiplicity() as f64)
-    //     / (new_profile.temporal_multiplicity() as f64);
-
     let old_num_cdts = num_cdts_in_profile(&old_profile);
     let new_num_cdts = num_cdts_in_profile(&new_profile);
 
     let acceptance = new_num_cdts as f64 / old_num_cdts as f64;
-    let acceptance = acceptance * (old_profile.temporal_multiplicity() as f64)
-        / (new_profile.temporal_multiplicity() as f64);
 
     //random number between 0 and 1
     let random_number = rand::thread_rng().gen_range(0.0..1.0);
@@ -223,19 +143,6 @@ pub fn volume_profile_samples(
     }
 
     result
-}
-
-impl PartialEq for VolumeProfile {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-impl Eq for VolumeProfile {}
-
-impl Hash for VolumeProfile {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
-    }
 }
 
 pub fn non_cyclic_permutations(vec: Vec<usize>) -> HashSet<VolumeProfile> {
