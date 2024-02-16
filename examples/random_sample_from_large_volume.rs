@@ -9,24 +9,24 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 fn main() {
     // Parameters
-    let side_length = 256; // Length of each side of the volume
+    let side_length = 4; // Length of each side of the volume
     let num_samples = 100_000; // Number of samples to generate
     let num_iterations = 10 * side_length; // Number of iterations to generate the initial volume profile
 
     println!("Generating initial volume profile");
 
     // Generate initial volume profile
-    let initial_volume_profile = VolumeProfile::new(vec![side_length; side_length].into());
+    let initial_volume_profile = VolumeProfile::new(vec![3, 3, 4].into());
     let initial_volume_profile = generate_sample_profile(initial_volume_profile, num_iterations);
 
     println!("Initial volume profile generated, beginning sample generation");
+    // Calculate volume
+    let vol: usize = initial_volume_profile.profile.iter().sum::<usize>() * 2usize;
+
     // Generate volume profile samples
     let mut samples = volume_profile_samples(initial_volume_profile, side_length * 2, num_samples);
 
     println!("Sample generated");
-
-    // Calculate volume
-    let vol = side_length * side_length * 2;
 
     // Create file for saving results
     let path = format!("data/Volume_{}_statistical.csv", vol);

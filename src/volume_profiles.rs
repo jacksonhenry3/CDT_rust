@@ -10,6 +10,7 @@ use xxhash_rust::xxh3::xxh3_64;
 use crate::utils;
 
 //derive eq
+// probably dont need calc id when running a large sim, consider directly geenerating vp instead of using new.
 #[derive(Debug, Clone)]
 pub struct VolumeProfile {
     pub profile: VecDeque<usize>,
@@ -94,10 +95,12 @@ impl VolumeProfile {
 }
 
 pub fn step(volume_profile: &VolumeProfile) -> VolumeProfile {
+    // WARNING the id of the returned volume profile is not calculated
     let mut profile = volume_profile.profile.clone();
 
     // first create a list of integers 1-len and permute them randomly
     let mut rng = thread_rng();
+
     let mut indices: Vec<usize> = (0..volume_profile.profile.len()).collect();
     indices.shuffle(&mut rng);
 
@@ -118,8 +121,8 @@ pub fn step(volume_profile: &VolumeProfile) -> VolumeProfile {
         profile[j] += perturbation_amount;
     }
 
-    VolumeProfile::new(profile)
-    // VolumeProfile { profile, id: 0 } // we shouldnt need to calculate ID here, and this speeds things up.
+    // VolumeProfile::new(profile)
+    VolumeProfile { profile, id: 0 } // we shouldnt need to calculate ID here, and this speeds things up.
 }
 
 pub fn acceptance_function(
