@@ -93,9 +93,15 @@ impl CDT {
 
         // connect the top and bottom layers.
         let other_time_index = if triangle {
-            (time_index + self.time_size() - 1).rem_euclid(self.time_size())
+            if time_index == 0 {
+                return None;
+            }
+            (time_index - 1)
         } else {
-            (time_index + 1).rem_euclid(self.time_size())
+            if time_index == self.time_size() - 1 {
+                return None;
+            }
+            (time_index + 1)
         };
 
         let other_slab = &self.slabs[other_time_index];
@@ -109,27 +115,27 @@ impl CDT {
         Some((other_time_index, other_space_index))
     }
 
-    pub fn all_transition_triangles(&self) -> Vec<(usize, usize)> {
-        let mut different_triangles = Vec::new();
+    // pub fn all_transition_triangles(&self) -> Vec<(usize, usize)> {
+    //     let mut different_triangles = Vec::new();
 
-        for (time_index, slab) in self.slabs.iter().enumerate() {
-            for (i, value) in slab.into_iter().enumerate() {
-                if value != slab[(i + 1) % slab.len()] {
-                    different_triangles.push((time_index, i));
-                }
-            }
-        }
+    //     for (time_index, slab) in self.slabs.iter().enumerate() {
+    //         for (i, value) in slab.into_iter().enumerate() {
+    //             if value != slab[(i + 1) % slab.len()] {
+    //                 different_triangles.push((time_index, i));
+    //             }
+    //         }
+    //     }
 
-        different_triangles
-    }
+    //     different_triangles
+    // }
 
-    pub fn random_transition_triangle(&self) -> (usize, usize) {
-        let transition_triangles = self.all_transition_triangles();
-        //select a random transition triangle
-        *transition_triangles
-            .choose(&mut rand::thread_rng())
-            .unwrap()
-    }
+    // pub fn random_transition_triangle(&self) -> (usize, usize) {
+    //     let transition_triangles = self.all_transition_triangles();
+    //     //select a random transition triangle
+    //     *transition_triangles
+    //         .choose(&mut rand::thread_rng())
+    //         .unwrap()
+    // }
 
     pub fn triangles(&self) -> Vec<(usize, usize, bool)> {
         let mut result = Vec::new();
@@ -243,8 +249,8 @@ impl std::ops::DerefMut for CDT {
     }
 }
 
-fn measure_boundaries(cdt: &CDT) -> usize {
-    let _max = f64::NAN;
-    let transition_triangles = cdt.all_transition_triangles();
-    transition_triangles.len()
-}
+// fn measure_boundaries(cdt: &CDT) -> usize {
+//     let _max = f64::NAN;
+//     let transition_triangles = cdt.all_transition_triangles();
+//     transition_triangles.len()
+// }
