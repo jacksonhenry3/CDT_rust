@@ -23,12 +23,6 @@ pub fn number_of_edges_arround_a_node(
     // all nodes have at least one spatial edge
     let mut result = 1;
 
-    //if the node is not on the spatial boundary, it has two spatial neighbors
-    if !cdt[time_index].is_boundary(space_index, direction) {
-        result += 1;
-        print!("not boundary")
-    }
-
     let next_index = |space_index: usize, space_size: usize| -> Option<usize> {
         //return if the next space index is less than or equal to space size
         match direction {
@@ -63,14 +57,15 @@ pub fn number_of_edges_arround_a_node(
         next_space_index_option = next_index(next_space_index, space_size);
     }
 
-    if next_space_index_option.is_none() {
-        result += 1;
-    }
+    // if next_space_index_option.is_none() {
+    //     result += 1;
+    // }
 
     //get the temporal pair of the node
     if let Some((other_time_index, other_space_index)) =
         cdt.get_temporal_pair(time_index, space_index)
     {
+        result += 1;
         print!("time pair found {} {}", other_time_index, other_space_index);
         let other_space_size = cdt.slabs[other_time_index].len();
         let mut other_next_space_index_option = next_index(other_space_index, other_space_size);
@@ -87,6 +82,15 @@ pub fn number_of_edges_arround_a_node(
             other_next_space_index_option = next_index(other_next_space_index, other_space_size);
         }
     }
+
+    // if boundary add one
+    if cdt.slabs[time_index].is_boundary(space_index, direction)
+        || time_index == 0
+        || time_index == cdt.time_size() - 1
+    {
+        result += 1;
+    }
+
     println!(
         "({},{},{:?}, {}) = {} ",
         time_index, space_index, direction, cdt[time_index][space_index], result
