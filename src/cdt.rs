@@ -101,6 +101,7 @@ impl CDT {
             if time_index == self.time_size() - 1 {
                 return None;
             }
+
             (time_index + 1)
         };
 
