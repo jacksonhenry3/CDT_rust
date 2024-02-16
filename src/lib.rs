@@ -153,7 +153,7 @@ pub fn cdt_iterator(volume_profile: Vec<usize>) -> impl Iterator<Item = CDT> {
 
 pub fn rsqrd_action(cdt: &CDT) -> f64 {
     let mut result = 0f64;
-    let lambda = 0f64;
+    let lambda = 1f64;
     //sum the deficite angles of all nodes, all nodes are here identified as all lower right nodes of true triangles
     for (time_index, space_index, _value) in
         cdt.triangles().into_iter().filter(|(_x, _t, value)| *value)
