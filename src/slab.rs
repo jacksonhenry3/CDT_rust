@@ -2,20 +2,23 @@ use crate::Direction;
 use itertools::Itertools;
 use std::{
     fmt,
-    ops::{Deref, DerefMut, Not},
+    ops::{Deref, Not},
+    sync::Arc,
 };
 
 /// Represents a slab, which is a sequence of 1s and 0s.
 /// The 1s represent upwards pointing triangles and the 0s represent downwards pointing triangles.
 #[derive(Debug, Eq, PartialOrd, Ord, Clone, PartialEq, Hash)]
 pub struct Slab {
-    pub data: Vec<bool>,
+    pub data: Arc<[bool]>,
 }
 
 impl Slab {
     /// Creates a new slab with the given data.
     pub fn new(data: Vec<bool>) -> Slab {
-        Slab { data }
+        Slab {
+            data: Arc::from(data),
+        }
     }
 
     /// Returns the count of true values in the slab.
@@ -32,7 +35,7 @@ impl Slab {
     /// Upwards pointing triangles are represented by '^' and downwards pointing triangles are represented by 'v'.
     pub fn string(&self) -> String {
         let mut result = String::new();
-        for value in &self.data {
+        for value in self.data.iter() {
             if *value {
                 result.push('^');
             } else {
@@ -44,10 +47,10 @@ impl Slab {
 
     /// Returns the index of the triangle at the given space index.
     pub fn get_triangle_index(&self, space_index: usize) -> usize {
-        if !self[space_index] {
-            (self)[..space_index].iter().filter(|&b| !*b).count()
-        } else {
+        if self[space_index] {
             (self)[..space_index].iter().filter(|&b| *b).count()
+        } else {
+            (self)[..space_index].iter().filter(|&b| !*b).count()
         }
     }
 
@@ -83,34 +86,17 @@ impl Slab {
 }
 
 impl Deref for Slab {
-    type Target = Vec<bool>;
-
+    type Target = [bool];
     fn deref(&self) -> &Self::Target {
         &self.data
     }
 }
 
-impl DerefMut for Slab {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.data
-    }
-}
-
 impl Not for Slab {
     type Output = Self;
-
     fn not(self) -> Self::Output {
         let data = self.data.iter().map(|b| !b).collect();
         Slab { data }
-    }
-}
-
-impl IntoIterator for &Slab {
-    type Item = bool;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.data.clone().into_iter()
     }
 }
 
@@ -136,5 +122,7 @@ pub fn all_slabs(num_trues: usize, num_falses: usize) -> impl Iterator<Item = Sl
     data.extend(vec![true; num_trues]);
     data.into_iter()
         .permutations(num_trues + num_falses)
-        .map(|data| Slab { data })
+        .map(|data| Slab {
+            data: Arc::from(data),
+        })
 }

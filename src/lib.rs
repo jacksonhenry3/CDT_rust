@@ -190,7 +190,7 @@ pub fn eh_action(cdt: &CDT) -> f64 {
     let a = cdt[T]
         .into_iter()
         .enumerate()
-        .map(|(a, b)| (T, a, b))
+        .map(|(a, b)| (T, a, *b))
         .filter(|(_, _, value)| !*value)
         .collect::<Vec<_>>();
 

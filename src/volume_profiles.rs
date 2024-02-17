@@ -1,21 +1,18 @@
+use core::panic;
 use itertools::Itertools;
 use rand::seq::SliceRandom;
 use rand::{thread_rng, Rng};
 use rayon::prelude::*;
-use std::collections::{HashSet, VecDeque};
+use std::collections::HashSet;
 use std::hash::Hash;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use xxhash_rust::xxh3::xxh3_64;
 
 use crate::utils;
 
-//derive eq
-// probably dont need calc id when running a large sim, consider directly geenerating vp instead of using new.
 #[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub struct VolumeProfile {
     pub profile: Vec<usize>,
 }
-// Now that there is a canonical form here, a lot can be simplified.
 
 impl VolumeProfile {
     pub fn new(profile: Vec<usize>) -> VolumeProfile {
@@ -24,7 +21,6 @@ impl VolumeProfile {
 }
 
 pub fn step(volume_profile: &VolumeProfile) -> VolumeProfile {
-    // WARNING the id of the returned volume profile is not calculated
     let mut profile = volume_profile.profile.clone();
 
     // first create a list of integers 1-len and permute them randomly
@@ -50,8 +46,7 @@ pub fn step(volume_profile: &VolumeProfile) -> VolumeProfile {
         profile[j] += perturbation_amount;
     }
 
-    // VolumeProfile::new(profile)
-    VolumeProfile { profile } // we shouldnt need to calculate ID here, and this speeds things up.
+    VolumeProfile { profile }
 }
 
 pub fn acceptance_function(
@@ -92,7 +87,7 @@ pub fn volume_profile_samples(
     let num_threads = rayon::current_num_threads();
     let chunk_size = num_samples / num_threads;
 
-    let mut progress_counter = AtomicUsize::new(0);
+    let progress_counter = AtomicUsize::new(0);
 
     println!("Generating samples");
     let samples: Vec<Vec<VolumeProfile>> = (0..num_threads)
@@ -114,14 +109,6 @@ pub fn volume_profile_samples(
             let mut current_state = initial_state.clone();
 
             for sim_index in start_index..end_index {
-                // print the thread index and sample progress as a percentage
-                if i == 0 {
-                    print!(
-                        "\rThread {} {:.2}%",
-                        i,
-                        100.0 * (sim_index - start_index) as f64 / (end_index - start_index) as f64
-                    );
-                }
                 for _ in 0..num_steps {
                     let proposed_vp = step(&current_state);
                     current_state = acceptance_function(current_state, proposed_vp);
@@ -133,7 +120,6 @@ pub fn volume_profile_samples(
         })
         .collect();
 
-    // explaoin
     println!();
     println!("Combining samples");
     let num_samples_actual = samples.len();
@@ -141,17 +127,6 @@ pub fn volume_profile_samples(
     for thread_sample in samples.into_iter() {
         result.extend(thread_sample);
     }
-
-    result
-}
-
-pub fn non_cyclic_permutations(vec: Vec<usize>) -> HashSet<VolumeProfile> {
-    let result: HashSet<_> = vec
-        .iter()
-        .cloned()
-        .permutations(vec.len())
-        .map(|x| VolumeProfile::new(x.into()))
-        .collect();
 
     result
 }
@@ -187,7 +162,7 @@ pub fn num_cdts_in_profile(volume_profile: &VolumeProfile) -> u128 {
         let m = volume_profile.profile[(i + 1) % len];
         count = match count.checked_mul(utils::choose(n + m, m) as u128) {
             Some(x) => x,
-            None => u128::MAX,
+            None => panic!("Overflow"),
         };
     }
     count

@@ -23,10 +23,15 @@ impl CDT {
         let length = volume_profile.profile.len();
         let mut rng = rand::thread_rng();
         let mut slabs = Vec::new();
-        for (i, volume) in volume_profile.profile.iter().enumerate() {
+        for (i, volume) in volume_profile
+            .profile
+            .iter()
+            .enumerate()
+            .take(volume_profile.profile.len() - 1)
+        {
             //create a vec with the correct number of 1s and 0s
             let mut slab_data = vec![true; *volume];
-            slab_data.append(&mut vec![false; volume_profile.profile[(i + 1) % length]]);
+            slab_data.append(&mut vec![false; volume_profile.profile[(i + 1)]]);
 
             slab_data.shuffle(&mut rng);
 
@@ -43,10 +48,13 @@ impl CDT {
     }
 
     pub fn volume_profile(&self) -> VolumeProfile {
-        let mut result = vec![0; self.slabs.len()];
+        let l = self.slabs.len();
+        let mut result = vec![0; l + 1];
         for (i, slab) in self.iter().enumerate() {
             result[i] = slab.count_true();
         }
+        result[l] = self[l - 1].count_false();
+
         VolumeProfile::new(result.into())
     }
 
@@ -142,7 +150,7 @@ impl CDT {
         let mut result = Vec::new();
         for (time_index, slab) in self.slabs.iter().enumerate() {
             for (space_index, value) in slab.into_iter().enumerate() {
-                result.push((time_index, space_index, value));
+                result.push((time_index, space_index, *value));
             }
         }
         result
