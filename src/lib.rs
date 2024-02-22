@@ -175,23 +175,23 @@ pub fn eh_action(cdt: &CDT) -> f64 {
     let mut result = 0f64;
     let lambda = 0f64;
     //sum the deficite angles of all nodes, all nodes are here identified as all lower right nodes of true triangles
-    let mut nodes = cdt
+    let nodes = cdt
         .triangles()
         .into_iter()
         .filter(|(_x, _t, value)| *value)
         .collect::<Vec<_>>();
 
     // add in the top row of false triangles to nodes
-    let T = cdt.len() - 1;
-    let a = cdt[T]
+    let time_size: usize = cdt.len() - 1;
+    let a = cdt[time_size]
         .into_iter()
         .enumerate()
-        .map(|(a, b)| (T, a, *b))
+        .map(|(a, b)| (time_size, a, *b))
         .filter(|(_, _, value)| !*value)
         .collect::<Vec<_>>();
 
     for (time_index, space_index, _value) in nodes.into_iter().chain(a.into_iter()) {
-        let mut num_adj_tris =
+        let num_adj_tris =
             number_of_triangles_around_a_node(cdt, time_index, space_index, Direction::Right);
 
         // println!("{} {} {} {}", time_index, space_index, _value, num_adj_tris);
@@ -206,7 +206,7 @@ pub fn eh_action(cdt: &CDT) -> f64 {
 
         let triangle_index = cdt.get_triangle_index(time_index, space_index);
         if triangle_index == 0 {
-            let mut num_adj_tris =
+            let num_adj_tris =
                 number_of_triangles_around_a_node(cdt, time_index, space_index, Direction::Left)
                     as f32;
             let area = num_adj_tris as f64 / 3.0;

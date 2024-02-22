@@ -108,7 +108,7 @@ pub fn volume_profile_samples(
 
             let mut current_state = initial_state.clone();
 
-            for sim_index in start_index..end_index {
+            for _sim_index in start_index..end_index {
                 for _ in 0..num_steps {
                     let proposed_vp = step(&current_state);
                     current_state = acceptance_function(current_state, proposed_vp);

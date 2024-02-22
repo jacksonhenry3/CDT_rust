@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use cdt_rust::eh_action;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs::File;
 use std::io::BufWriter;
@@ -8,9 +9,7 @@ use std::time::{self, Instant};
 use weighted_rand::builder::*;
 
 use cdt_rust::volume_profiles::{num_cdts_in_profile, VolumeProfile};
-use cdt_rust::{
-    cdt::CDT, cdt_iterator, rsqrd_action, utils::choose, volume_profiles::volume_profiles,
-};
+use cdt_rust::{cdt::CDT, cdt_iterator, utils::choose, volume_profiles::volume_profiles};
 use itertools::Itertools;
 use rayon::prelude::*;
 
@@ -22,7 +21,7 @@ fn write_data(vol: usize) {
         let profile_vec: Vec<usize> = profile.profile.into();
         let cdt_iterator = cdt_iterator(profile_vec.clone()).enumerate();
         cdt_iterator.map(|(i, cdt)| {
-            let action = rsqrd_action(&cdt);
+            let action = eh_action(&cdt);
             (cdt.volume_profile(), action)
         })
     });

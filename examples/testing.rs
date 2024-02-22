@@ -1,12 +1,12 @@
 // run this with cargo r -r --example random_sample_from_large_volume
-use cdt_rust::volume_profiles::{generate_sample_profile, volume_profile_samples, VolumeProfile};
+use cdt_rust::volume_profiles::{VolumeProfile};
 use cdt_rust::{self, cdt};
-use itertools::Itertools;
+
 use rand::Rng;
-use rayon::{prelude::*, vec};
-use std::fs::File;
-use std::io::Write;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use rayon::{prelude::*};
+
+
+
 
 
 fn main() {
