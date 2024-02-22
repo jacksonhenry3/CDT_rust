@@ -1,13 +1,8 @@
 // run this with cargo r -r --example random_sample_from_large_volume
-use cdt_rust::volume_profiles::{VolumeProfile};
+use cdt_rust::volume_profiles::VolumeProfile;
 use cdt_rust::{self, cdt};
 
 use rand::Rng;
-use rayon::{prelude::*};
-
-
-
-
 
 fn main() {
     let mut rng = rand::thread_rng();
