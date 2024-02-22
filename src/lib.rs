@@ -14,7 +14,7 @@ pub enum Direction {
     Right,
 }
 
-pub fn number_of_edges_arround_a_node(
+pub fn number_of_triangles_around_a_node(
     cdt: &CDT,
     time_index: usize,
     space_index: usize,
@@ -84,25 +84,20 @@ pub fn number_of_edges_arround_a_node(
         }
     }
 
+    // below is needed if thinking about number of edges instead of number of triangles.
     // if boundary add one
-    let is_space_boundary = cdt.slabs[time_index].is_boundary(space_index, direction);
-    let is_time_boundary = (time_index == 0 && triangle_value)
-        || (time_index == cdt.time_size() - 1 && !triangle_value);
+    // let is_space_boundary = cdt.slabs[time_index].is_boundary(space_index, direction);
+    // let is_time_boundary = (time_index == 0 && triangle_value)
+    //     || (time_index == cdt.time_size() - 1 && !triangle_value);
 
-    let is_boundary = is_space_boundary || is_time_boundary;
-    if is_boundary {
-        result += 1;
-    }
-    // println!(
-    //     "({} {} {:?}) {} {}",
-    //     time_index, space_index, direction, result, is_boundary
-    // );
+    // let is_boundary = is_space_boundary || is_time_boundary;
+
     result
 }
 
 // deficite angle
 pub fn deficite_angle(cdt: &CDT, time_index: usize, space_index: usize, side: Direction) -> f64 {
-    let number_of_edges = number_of_edges_arround_a_node(cdt, time_index, space_index, side);
+    let number_of_edges = number_of_triangles_around_a_node(cdt, time_index, space_index, side);
 
     //figure out if the node is on spatial or temporal boundary
     let is_spatial_boundary = cdt.slabs[time_index].is_boundary(space_index, side);
@@ -111,21 +106,22 @@ pub fn deficite_angle(cdt: &CDT, time_index: usize, space_index: usize, side: Di
     let is_temporal_boundary = (time_index == 0 && triangle_value)
         || (time_index == cdt.time_size() - 1 && !triangle_value);
 
-    let mut expected_number_of_edges = 6f64;
-    if is_spatial_boundary {
-        expected_number_of_edges -= 2.;
-    }
+    let expected_number_of_triangles = match (is_spatial_boundary, is_temporal_boundary) {
+        (true, true) => 6.,
+        (true, false) => 6.,
+        (false, true) => 6.,
+        (false, false) => 6.,
+    };
 
-    if is_temporal_boundary {
-        expected_number_of_edges -= 2.;
-    }
+    // match (is_spatial_boundary, is_spatial_boundary) {
+    //     (true, true) => println!("is spatial and temporal boundary"),
+    //     (true, false) => println!("is spatial boundary"),
+    //     (false, true) => println!("is temporal boundary"),
+    //     (false, false) => println!("is not boundary"),
+    // }
 
-    if is_spatial_boundary && is_temporal_boundary {
-        expected_number_of_edges += 0.5f64;
-    }
-
-    // println!("{} {}", number_of_edges, expected_number_of_edges);
-    (number_of_edges as f64) - expected_number_of_edges // * std::f64::consts::PI / 3.0
+    // println!("{} {}", number_of_edges, expected_number_of_triangles);
+    (number_of_edges as f64) - expected_number_of_triangles // * std::f64::consts::PI / 3.0
 }
 
 //create a cdt iterator that iterates over all possible cdt with a given volume profile using slab_iterator
@@ -196,11 +192,13 @@ pub fn eh_action(cdt: &CDT) -> f64 {
 
     for (time_index, space_index, _value) in nodes.into_iter().chain(a.into_iter()) {
         let mut num_adj_tris =
-            number_of_edges_arround_a_node(cdt, time_index, space_index, Direction::Right);
+            number_of_triangles_around_a_node(cdt, time_index, space_index, Direction::Right);
 
-        if cdt.slabs[time_index].is_boundary(space_index, Direction::Right) {
-            num_adj_tris -= 1;
-        }
+        // println!("{} {} {} {}", time_index, space_index, _value, num_adj_tris);
+
+        // if cdt.slabs[time_index].is_boundary(space_index, Direction::Right) {
+        //     num_adj_tris -= 1;
+        // }
         let area = num_adj_tris as f64 / 3.0;
 
         result +=
@@ -209,11 +207,8 @@ pub fn eh_action(cdt: &CDT) -> f64 {
         let triangle_index = cdt.get_triangle_index(time_index, space_index);
         if triangle_index == 0 {
             let mut num_adj_tris =
-                number_of_edges_arround_a_node(cdt, time_index, space_index, Direction::Left)
+                number_of_triangles_around_a_node(cdt, time_index, space_index, Direction::Left)
                     as f32;
-            if cdt.slabs[time_index].is_boundary(space_index, Direction::Left) {
-                num_adj_tris -= 1.0;
-            }
             let area = num_adj_tris as f64 / 3.0;
 
             result += area

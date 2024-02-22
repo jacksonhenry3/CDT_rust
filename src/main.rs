@@ -9,8 +9,7 @@ use weighted_rand::builder::*;
 
 use cdt_rust::volume_profiles::{num_cdts_in_profile, VolumeProfile};
 use cdt_rust::{
-    cdt::CDT, cdt_iterator, rsqrd_action, utils::choose, volume_profiles::non_cyclic_permutations,
-    volume_profiles::volume_profiles,
+    cdt::CDT, cdt_iterator, rsqrd_action, utils::choose, volume_profiles::volume_profiles,
 };
 use itertools::Itertools;
 use rayon::prelude::*;

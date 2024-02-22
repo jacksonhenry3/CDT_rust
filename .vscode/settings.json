@@ -5,5 +5,16 @@
         ".\\Cargo.toml",
         ".\\Cargo.toml"
     ],
-    "rust-analyzer.showUnlinkedFileNotification": false
+    "rust-analyzer.showUnlinkedFileNotification": false,
+
+    "files.associations": {
+        ".rs*": "rs"
+    },
+    "github.copilot.enable": {
+        "rs": true,
+        "*": false
+        
+    }
+    
 }
+
