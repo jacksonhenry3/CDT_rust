@@ -6,7 +6,7 @@ use rand::Rng;
 
 fn main() {
     let mut rng = rand::thread_rng();
-    for i in 1..10e5 as usize {
+    for i in 1..10e3 as usize {
         // print out every multiple of 1000
         if i % 1000 == 0 {
             println!("{}", i);

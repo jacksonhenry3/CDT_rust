@@ -1,10 +1,9 @@
-// ignore unused
-#![allow(unused)]
-
 use crate::slab::Slab;
 use crate::volume_profiles::{self, VolumeProfile};
+use crate::Direction;
 use grafferous;
 
+use itertools::Itertools;
 use rand::seq::SliceRandom;
 use rand::Rng;
 /// A CDT is a sequence of slabs, where the last slab is connected to the first slab.
@@ -84,7 +83,7 @@ impl CDT {
         (time_index, space_index)
     }
 
-    //get triangle index (how many other triangles of the same type have already appeared in that slabn) from time and space index
+    //get triangle index (how many other triangles of the same type have already appeared in that slab) from time and space index
     pub fn get_triangle_index(&self, time_index: usize, space_index: usize) -> usize {
         let slab = &self.slabs[time_index];
         slab.get_triangle_index(space_index)
@@ -123,28 +122,6 @@ impl CDT {
 
         Some((other_time_index, other_space_index))
     }
-
-    // pub fn all_transition_triangles(&self) -> Vec<(usize, usize)> {
-    //     let mut different_triangles = Vec::new();
-
-    //     for (time_index, slab) in self.slabs.iter().enumerate() {
-    //         for (i, value) in slab.into_iter().enumerate() {
-    //             if value != slab[(i + 1) % slab.len()] {
-    //                 different_triangles.push((time_index, i));
-    //             }
-    //         }
-    //     }
-
-    //     different_triangles
-    // }
-
-    // pub fn random_transition_triangle(&self) -> (usize, usize) {
-    //     let transition_triangles = self.all_transition_triangles();
-    //     //select a random transition triangle
-    //     *transition_triangles
-    //         .choose(&mut rand::thread_rng())
-    //         .unwrap()
-    // }
 
     pub fn triangles(&self) -> Vec<(usize, usize, bool)> {
         let mut result = Vec::new();
@@ -229,6 +206,31 @@ impl CDT {
         }
 
         2 * self.time_size()
+    }
+
+    //a function which returns an iterator of all nodes (time_index,space_index, direction) in the triangulation
+    pub fn nodes<'a>(&'a self) -> impl Iterator<Item = (usize, usize, Direction)> + 'a {
+        let right_true_nodes = self
+            .triangles()
+            .into_iter()
+            .filter(|(_x, _t, value)| *value)
+            .map(|(x, t, _value)| (x, t, Direction::Right));
+
+        let time_size = self.time_size() - 1;
+        let right_false_nodes = self[time_size]
+            .into_iter()
+            .enumerate()
+            .filter(|(_, value)| !*value)
+            .map(move |(x, _value)| (x, self.time_size() - 1, Direction::Right));
+
+        // this is inefficient, we are iterating over the whole cdt twice
+        let left_nodes = self
+            .triangles()
+            .into_iter()
+            .filter(|(x, t, _value)| self.get_triangle_index(*t, *x) == 0)
+            .map(|(x, t, _value)| (x, t, Direction::Left));
+
+        right_true_nodes.chain(right_false_nodes).chain(left_nodes)
     }
 }
 

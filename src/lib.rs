@@ -96,31 +96,10 @@ pub fn number_of_triangles_around_a_node(
 }
 
 // deficite angle
-pub fn deficite_angle(cdt: &CDT, time_index: usize, space_index: usize, side: Direction) -> f64 {
+pub fn deficit_angle(cdt: &CDT, time_index: usize, space_index: usize, side: Direction) -> f64 {
     let number_of_edges = number_of_triangles_around_a_node(cdt, time_index, space_index, side);
+    let expected_number_of_triangles = 6.;
 
-    //figure out if the node is on spatial or temporal boundary
-    let is_spatial_boundary = cdt.slabs[time_index].is_boundary(space_index, side);
-    let triangle_value = cdt[time_index][space_index];
-
-    let is_temporal_boundary = (time_index == 0 && triangle_value)
-        || (time_index == cdt.time_size() - 1 && !triangle_value);
-
-    let expected_number_of_triangles = match (is_spatial_boundary, is_temporal_boundary) {
-        (true, true) => 6.,
-        (true, false) => 6.,
-        (false, true) => 6.,
-        (false, false) => 6.,
-    };
-
-    // match (is_spatial_boundary, is_spatial_boundary) {
-    //     (true, true) => println!("is spatial and temporal boundary"),
-    //     (true, false) => println!("is spatial boundary"),
-    //     (false, true) => println!("is temporal boundary"),
-    //     (false, false) => println!("is not boundary"),
-    // }
-
-    // println!("{} {}", number_of_edges, expected_number_of_triangles);
     (number_of_edges as f64) - expected_number_of_triangles // * std::f64::consts::PI / 3.0
 }
 
@@ -174,12 +153,11 @@ pub fn eh_action(cdt: &CDT) -> f64 {
     //calculate the einstien hilbert action of the cdt
     let mut result = 0f64;
     let lambda = 0f64;
+
+    // UPDATE THIS TO USE THE NODES METHOD,BUT ITS BROKEN RN
+
     //sum the deficite angles of all nodes, all nodes are here identified as all lower right nodes of true triangles
-    let nodes = cdt
-        .triangles()
-        .into_iter()
-        .filter(|(_x, _t, value)| *value)
-        .collect::<Vec<_>>();
+    let nodes = cdt.triangles().into_iter().filter(|(_x, _t, value)| *value);
 
     // add in the top row of false triangles to nodes
     let time_size: usize = cdt.len() - 1;
@@ -187,22 +165,17 @@ pub fn eh_action(cdt: &CDT) -> f64 {
         .into_iter()
         .enumerate()
         .map(|(a, b)| (time_size, a, *b))
-        .filter(|(_, _, value)| !*value)
-        .collect::<Vec<_>>();
+        .filter(|(_, _, value)| !*value);
 
-    for (time_index, space_index, _value) in nodes.into_iter().chain(a.into_iter()) {
+    for (time_index, space_index, _value) in nodes.chain(a) {
         let num_adj_tris =
             number_of_triangles_around_a_node(cdt, time_index, space_index, Direction::Right);
 
-        // println!("{} {} {} {}", time_index, space_index, _value, num_adj_tris);
-
-        // if cdt.slabs[time_index].is_boundary(space_index, Direction::Right) {
-        //     num_adj_tris -= 1;
-        // }
         let area = num_adj_tris as f64 / 3.0;
 
+        // this could be made more efficient by passing num_adj_tris to deficit_angle
         result +=
-            area * (deficite_angle(cdt, time_index, space_index, Direction::Right) / area - lambda);
+            area * (deficit_angle(cdt, time_index, space_index, Direction::Right) / area - lambda);
 
         let triangle_index = cdt.get_triangle_index(time_index, space_index);
         if triangle_index == 0 {
@@ -212,7 +185,7 @@ pub fn eh_action(cdt: &CDT) -> f64 {
             let area = num_adj_tris as f64 / 3.0;
 
             result += area
-                * (deficite_angle(cdt, time_index, space_index, Direction::Left) / area - lambda);
+                * (deficit_angle(cdt, time_index, space_index, Direction::Left) / area - lambda);
         }
     }
 
