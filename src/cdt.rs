@@ -213,24 +213,24 @@ impl CDT {
         let right_true_nodes = self
             .triangles()
             .into_iter()
-            .filter(|(_x, _t, value)| *value)
-            .map(|(x, t, _value)| (x, t, Direction::Right));
+            .filter(|(_t, _x, value)| *value)
+            .map(|(t, x, _value)| (t, x, Direction::Right));
 
         let time_size = self.time_size() - 1;
         let right_false_nodes = self[time_size]
             .into_iter()
             .enumerate()
             .filter(|(_, value)| !*value)
-            .map(move |(x, _value)| (x, self.time_size() - 1, Direction::Right));
+            .map(move |(x, _value)| (self.time_size() - 1, x, Direction::Right));
 
-        // this is inefficient, we are iterating over the whole cdt twice
-        let left_nodes = self
-            .triangles()
-            .into_iter()
-            .filter(|(x, t, _value)| self.get_triangle_index(*t, *x) == 0)
-            .map(|(x, t, _value)| (x, t, Direction::Left));
+        let right_nodes = right_true_nodes.chain(right_false_nodes);
 
-        right_true_nodes.chain(right_false_nodes).chain(left_nodes)
+        let left_nodes = right_nodes
+            .clone()
+            .filter(|(t, x, _dir)| self.get_triangle_index(*t, *x) == 0)
+            .map(|(t, x, _old_dir)| (t, x, Direction::Left));
+
+        right_nodes.chain(left_nodes)
     }
 }
 

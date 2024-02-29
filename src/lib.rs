@@ -84,14 +84,6 @@ pub fn number_of_triangles_around_a_node(
         }
     }
 
-    // below is needed if thinking about number of edges instead of number of triangles.
-    // if boundary add one
-    // let is_space_boundary = cdt.slabs[time_index].is_boundary(space_index, direction);
-    // let is_time_boundary = (time_index == 0 && triangle_value)
-    //     || (time_index == cdt.time_size() - 1 && !triangle_value);
-
-    // let is_boundary = is_space_boundary || is_time_boundary;
-
     result
 }
 
@@ -157,36 +149,16 @@ pub fn eh_action(cdt: &CDT) -> f64 {
     // UPDATE THIS TO USE THE NODES METHOD,BUT ITS BROKEN RN
 
     //sum the deficite angles of all nodes, all nodes are here identified as all lower right nodes of true triangles
-    let nodes = cdt.triangles().into_iter().filter(|(_x, _t, value)| *value);
+    let nodes = cdt.nodes();
 
-    // add in the top row of false triangles to nodes
-    let time_size: usize = cdt.len() - 1;
-    let a = cdt[time_size]
-        .into_iter()
-        .enumerate()
-        .map(|(a, b)| (time_size, a, *b))
-        .filter(|(_, _, value)| !*value);
-
-    for (time_index, space_index, _value) in nodes.chain(a) {
-        let num_adj_tris =
-            number_of_triangles_around_a_node(cdt, time_index, space_index, Direction::Right);
+    for (time_index, space_index, dir) in nodes {
+        // println!("{} {} {:?}", time_index, space_index, dir);
+        let num_adj_tris = number_of_triangles_around_a_node(cdt, time_index, space_index, dir);
 
         let area = num_adj_tris as f64 / 3.0;
 
         // this could be made more efficient by passing num_adj_tris to deficit_angle
-        result +=
-            area * (deficit_angle(cdt, time_index, space_index, Direction::Right) / area - lambda);
-
-        let triangle_index = cdt.get_triangle_index(time_index, space_index);
-        if triangle_index == 0 {
-            let num_adj_tris =
-                number_of_triangles_around_a_node(cdt, time_index, space_index, Direction::Left)
-                    as f32;
-            let area = num_adj_tris as f64 / 3.0;
-
-            result += area
-                * (deficit_angle(cdt, time_index, space_index, Direction::Left) / area - lambda);
-        }
+        result += area * (deficit_angle(cdt, time_index, space_index, dir) / area - lambda);
     }
 
     result
