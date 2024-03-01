@@ -1,9 +1,7 @@
-
 // run this with cargo r -r --example random_sample_from_large_volume
-use cdt_rust::volume_profiles::{
-    num_cdts_in_profile, VolumeProfile,
-};
+use cdt_rust::volume_profiles::{num_cdts_in_profile, VolumeProfile};
 use cdt_rust::{self};
+use itertools::Itertools;
 use rayon::prelude::*;
 use std::fs::File;
 use std::io::Write;
@@ -12,6 +10,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 fn main() {
     // Parameters
     let volume_profile = VolumeProfile::new(vec![4, 4, 4]);
+    let volume_profile_string = volume_profile.profile.iter().join("_");
 
     // Create file for saving results
     let path = format!("data/Volume_{:?}_statistical.csv", volume_profile.profile);
@@ -35,7 +34,6 @@ fn main() {
         print!("\r{:.2}%", progress_percent);
 
         // Generate a random CDT with volumeprofile vp
-        
 
         cdt_rust::r_sqrd_action(&cdt)
     });
@@ -44,6 +42,6 @@ fn main() {
 
     // Write results to file
     for action in actions.collect::<Vec<_>>() {
-        writeln!(w, "{}", action).unwrap();
+        writeln!(w, "{:?},{}", volume_profile_string, action).unwrap();
     }
 }

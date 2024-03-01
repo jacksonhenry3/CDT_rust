@@ -39,8 +39,8 @@ fn main() {
         io::stdout().flush().unwrap();
         print!("\r{:.2}%", progress_percent);
 
-        let vol_prof = vp.profile.iter().join("_");
-        let path = format!("{}{}.csv", base_path, vol_prof);
+        let volume_profile_string = vp.profile.iter().join("_");
+        let path = format!("{}{}.csv", base_path, volume_profile_string);
 
         let mut f = File::create(path).unwrap();
         let mut w = std::io::BufWriter::new(&mut f);
@@ -49,7 +49,7 @@ fn main() {
         let cdts = cdt_iterator(vp.profile.clone());
         for cdt in cdts {
             let action = cdt_rust::r_sqrd_action(&cdt);
-            writeln!(w, "{:?},{}", vol_prof, action).unwrap();
+            writeln!(w, "{:?},{}", volume_profile_string, action).unwrap();
         }
     });
 }

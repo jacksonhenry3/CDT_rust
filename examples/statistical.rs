@@ -60,14 +60,14 @@ fn main() {
         let cdt = cdt::CDT::random(vp);
         let action = cdt_rust::r_sqrd_action(&cdt);
 
-        let vol_prof = vp.profile.iter().join(":");
-        (vol_prof, action)
+        let volume_profile_string = vp.profile.iter().join(":");
+        (volume_profile_string, action)
     });
 
     println!("Saving to file");
 
     // Write results to file
-    for (vol_prof, action) in actions.collect::<Vec<_>>() {
-        writeln!(w, "{:?},{}", vol_prof, action).unwrap();
+    for (volume_profile_string, action) in actions.collect::<Vec<_>>() {
+        writeln!(w, "{:?},{}", volume_profile_string, action).unwrap();
     }
 }
