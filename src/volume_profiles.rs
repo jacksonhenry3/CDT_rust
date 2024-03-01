@@ -5,6 +5,7 @@ use rand::{thread_rng, Rng};
 use rayon::prelude::*;
 use std::collections::HashSet;
 use std::hash::Hash;
+use std::ops::Add;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::utils;
@@ -53,10 +54,10 @@ pub fn acceptance_function(
     old_profile: VolumeProfile,
     new_profile: VolumeProfile,
 ) -> VolumeProfile {
-    let old_num_cdts = num_cdts_in_profile(&old_profile);
-    let new_num_cdts = num_cdts_in_profile(&new_profile);
+    let log_old_num_cdts = log_num_cdts_in_profile(&old_profile, 10.0);
+    let log_new_num_cdts = log_num_cdts_in_profile(&new_profile, 10.0);
 
-    let acceptance = new_num_cdts as f64 / old_num_cdts as f64;
+    let acceptance = (log_new_num_cdts - log_old_num_cdts).exp();
 
     //random number between 0 and 1
     let random_number = rand::thread_rng().gen_range(0.0..1.0);
@@ -77,58 +78,35 @@ pub fn generate_sample_profile(initial_state: VolumeProfile, num_steps: usize) -
     current_state
 }
 
-// use rayon par_chunk to generate samples in parallel better
 pub fn volume_profile_samples(
     initial_state: VolumeProfile,
     num_steps: usize,
     num_samples: usize,
 ) -> Vec<VolumeProfile> {
-    // use rayon to get the ideal number of threads
-    let num_threads = rayon::current_num_threads();
-    let chunk_size = num_samples / num_threads;
-
     let progress_counter = AtomicUsize::new(0);
 
     println!("Generating samples");
-    let samples: Vec<Vec<VolumeProfile>> = (0..num_threads)
-        .into_par_iter()
-        .map(|i| {
-            let progress = progress_counter.fetch_add(1, Ordering::SeqCst);
-            let progress_percent = 100.0 * progress as f64 / (num_threads * chunk_size) as f64;
-            print!("\r{:.2}%", progress_percent);
-
-            let start_index = i * chunk_size;
-            let end_index = if i == num_threads - 1 {
-                num_samples
-            } else {
-                (i + 1) * chunk_size
-            };
-
-            let mut thread_samples = Vec::with_capacity(end_index - start_index);
-
+    let samples: Vec<VolumeProfile> = (0..num_samples)
+        .collect::<Vec<_>>()
+        .par_chunks(rayon::current_num_threads())
+        .map(|chunk| {
             let mut current_state = initial_state.clone();
 
-            for _sim_index in start_index..end_index {
+            for _sim_index in chunk {
+                let progress = progress_counter.fetch_add(1, Ordering::SeqCst);
+                let progress_percent = 100.0 * progress as f64 / num_samples as f64;
+                print!("\r{:.2}%", progress_percent);
                 for _ in 0..num_steps {
                     let proposed_vp = step(&current_state);
                     current_state = acceptance_function(current_state, proposed_vp);
                 }
-                thread_samples.push(current_state.clone());
             }
 
-            thread_samples
+            current_state
         })
         .collect();
 
-    println!();
-    println!("Combining samples");
-    let num_samples_actual = samples.len();
-    let mut result = Vec::with_capacity(num_samples_actual);
-    for thread_sample in samples.into_iter() {
-        result.extend(thread_sample);
-    }
-
-    result
+    samples
 }
 
 pub fn volume_profiles(volume: usize, time_size: usize) -> HashSet<VolumeProfile> {
@@ -154,6 +132,17 @@ pub fn volume_profiles(volume: usize, time_size: usize) -> HashSet<VolumeProfile
 }
 
 // #[cached]
+pub fn log_num_cdts_in_profile(volume_profile: &VolumeProfile, scale_factor: f64) -> f64 {
+    let mut log_count_sum = 0f64;
+    let len = volume_profile.profile.len();
+    for i in 0..(len - 1) {
+        let n = volume_profile.profile[i];
+        let m = volume_profile.profile[i + 1];
+        log_count_sum += utils::log_choose(n + m, m) as f64;
+    }
+    (log_count_sum - scale_factor.ln())
+}
+
 pub fn num_cdts_in_profile(volume_profile: &VolumeProfile) -> u128 {
     let mut count = 1u128;
     let len = volume_profile.profile.len();
