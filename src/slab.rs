@@ -122,6 +122,7 @@ pub fn all_slabs(num_trues: usize, num_falses: usize) -> impl Iterator<Item = Sl
     data.extend(vec![true; num_trues]);
     data.into_iter()
         .permutations(num_trues + num_falses)
+        .unique()
         .map(|data| Slab {
             data: Arc::from(data),
         })

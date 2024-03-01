@@ -146,9 +146,9 @@ pub fn log_num_cdts_in_profile(volume_profile: &VolumeProfile, scale_factor: f64
 pub fn num_cdts_in_profile(volume_profile: &VolumeProfile) -> u128 {
     let mut count = 1u128;
     let len = volume_profile.profile.len();
-    for i in 0..len {
+    for i in 0..len - 1 {
         let n = volume_profile.profile[i];
-        let m = volume_profile.profile[(i + 1) % len];
+        let m = volume_profile.profile[(i + 1)];
         count = match count.checked_mul(utils::choose(n + m, m) as u128) {
             Some(x) => x,
             None => panic!("Overflow"),
