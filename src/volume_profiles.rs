@@ -54,10 +54,10 @@ pub fn acceptance_function(
     old_profile: VolumeProfile,
     new_profile: VolumeProfile,
 ) -> VolumeProfile {
-    let log_old_num_cdts = num_cdts_in_profile(&old_profile);
-    let log_new_num_cdts = num_cdts_in_profile(&new_profile);
+    let log_old_num_cdts = log_num_cdts_in_profile(&old_profile, 10.0);
+    let log_new_num_cdts = log_num_cdts_in_profile(&new_profile, 10.0);
 
-    let acceptance = (log_new_num_cdts as f64 / log_old_num_cdts as f64);
+    let acceptance = (log_new_num_cdts - log_old_num_cdts).exp();
 
     //random number between 0 and 1
     let random_number = rand::thread_rng().gen_range(0.0..1.0);
