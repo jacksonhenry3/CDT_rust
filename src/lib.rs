@@ -176,8 +176,8 @@ pub fn r_sqrd_action(cdt: &CDT) -> f64 {
         let area = num_adj_tris as f64 / 3.0;
 
         // this could be made more efficient by passing num_adj_tris to deficit_angle
-        let R = deficit_angle(num_adj_tris) / area;
-        result += area * (R * R - lambda);
+        let r = deficit_angle(num_adj_tris) / area;
+        result += area * (r * r - lambda);
     }
 
     let volume_profile = cdt.volume_profile().profile;
