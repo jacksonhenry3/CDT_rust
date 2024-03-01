@@ -1,38 +1,50 @@
 #![allow(unused)]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-// import the crate im in for  benchmarking
+use cdt_rust::{cdt::CDT, volume_profiles, Slab};
 
-fn benchmark_slab(c: &mut Criterion) {
-    let a = cdt_rust::Slab::new(vec![true; 128]);
-
-    //set
-    c.bench_function("slab_set", |b| {
+fn becnhmark_random_cdt(c: &mut Criterion) {
+    c.bench_function("random_cdt", |b| {
+        // put the volume profile in a black box
+        let volume_profile = black_box(volume_profiles::VolumeProfile::new(vec![20; 20]));
         b.iter(|| {
-            let mut a = a.clone();
-            a.set(black_box(0), black_box(true));
-        })
-    });
-
-    //get
-    c.bench_function("slab_get", |b| {
-        b.iter(|| {
-            let mut a = a.clone();
-            a[black_box(0)];
+            let cdt = CDT::random(&volume_profile);
         })
     });
 }
 
-fn benchmark_count(c: &mut Criterion) {
-    //use rayon to count the elements in the iterator
-    c.bench_function("count", |b| {
+fn benchmark_vp_step(c: &mut Criterion) {
+    c.bench_function("vp_step", |b| {
+        // put the volume profile in a black box
+        let volume_profile = black_box(volume_profiles::VolumeProfile::new(vec![20; 20]));
+        let cdt = CDT::random(&volume_profile);
         b.iter(|| {
-            let mut a = cdt_rust::cdt_iterator(vec![3; 4]);
-            let count = a.filter(|x| x.volume_profile()[0] == 3).count();
-        })
+            let new_profile = volume_profiles::step(&volume_profile);
+        });
     });
 }
 
-criterion_group!(benches, benchmark_count);
+fn becnchmark_vp_acceptance_function(c: &mut Criterion) {
+    c.bench_function("vp_acceptance_function", |b| {
+        // put the volume profile in a black box
+        let old_profile = black_box(volume_profiles::VolumeProfile::new(vec![20; 20]));
+
+        let mut new_profile = vec![10; 10];
+        new_profile.extend(vec![30; 10]);
+
+        let new_profile = black_box(volume_profiles::VolumeProfile::new(new_profile));
+        b.iter(|| {
+            let result =
+                volume_profiles::acceptance_function(old_profile.clone(), new_profile.clone());
+        });
+    });
+}
+
+criterion_group!(
+    benches,
+    becnhmark_random_cdt,
+    benchmark_vp_step,
+    becnchmark_vp_acceptance_function
+);
 
 criterion_main!(benches);
