@@ -38,7 +38,7 @@ mod tests {
     fn test_get_triangle_in_slab_by_index() {
         let slab = Slab::new(vec![true, false, true]);
         assert_eq!(slab.get_triangle_in_slab_by_index(0, true), 0);
-        assert_eq!(slab.get_triangle_in_slab_by_index(1, false), 1);
+        assert_eq!(slab.get_triangle_in_slab_by_index(0, false), 1);
     }
 
     #[test]

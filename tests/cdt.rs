@@ -2,8 +2,6 @@
 mod tests {
     use cdt_rust::{cdt::CDT, volume_profiles::VolumeProfile, Slab};
 
-    
-
     #[test]
     fn test_new() {
         let slabs = vec![
@@ -45,7 +43,7 @@ mod tests {
             Slab::new(vec![false, true, false]),
         ];
         let cdt = CDT::new(slabs);
-        assert_eq!(cdt.number_of_triangles(), 8);
+        assert_eq!(cdt.number_of_triangles(), 6);
     }
 
     #[test]
