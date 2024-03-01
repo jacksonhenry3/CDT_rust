@@ -5,6 +5,7 @@ use rand::{thread_rng, Rng};
 use rayon::prelude::*;
 use std::collections::HashSet;
 use std::hash::Hash;
+use std::io::{self, Write};
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -96,7 +97,8 @@ pub fn volume_profile_samples(
             for _sim_index in chunk {
                 let progress = progress_counter.fetch_add(1, Ordering::SeqCst);
                 let progress_percent = 100.0 * progress as f64 / num_samples as f64;
-                println!("\r{:.2}%", progress_percent);
+                io::stdout().flush().unwrap();
+                print!("\r{:.2}%", progress_percent);
                 for _ in 0..num_steps {
                     let proposed_vp = step(&current_state);
                     current_state = acceptance_function(current_state, proposed_vp);
@@ -109,6 +111,8 @@ pub fn volume_profile_samples(
         })
         .flatten()
         .collect();
+
+    println!();
 
     samples
 }
