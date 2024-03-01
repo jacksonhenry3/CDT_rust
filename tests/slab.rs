@@ -1,21 +1,29 @@
-use cdt_rust::Slab;
-
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use cdt_rust::{slab::all_slabs, Direction, Slab};
 
     #[test]
-    fn test_new() {
+    fn test_length() {
         let slab = Slab::new(vec![true, false, true]);
-        assert_eq!(slab.length, 3);
-        assert_eq!(slab.data, 5);
+        assert_eq!(slab.length(), 3);
     }
 
     #[test]
-    fn test_set() {
-        let mut slab = Slab::new(vec![true, false, true]);
-        slab.set(1, true);
-        assert_eq!(slab.data, 7);
+    fn test_count_true() {
+        let slab = Slab::new(vec![true, false, true]);
+        assert_eq!(slab.count_true(), 2);
+    }
+
+    #[test]
+    fn test_count_false() {
+        let slab = Slab::new(vec![true, false, true]);
+        assert_eq!(slab.count_false(), 1);
+    }
+
+    #[test]
+    fn test_string() {
+        let slab = Slab::new(vec![true, false, true]);
+        assert_eq!(slab.string(), "^v^");
     }
 
     #[test]
@@ -31,74 +39,43 @@ mod tests {
         let slab = Slab::new(vec![true, false, true]);
         assert_eq!(slab.get_triangle_in_slab_by_index(0, true), 0);
         assert_eq!(slab.get_triangle_in_slab_by_index(0, false), 1);
-        assert_eq!(slab.get_triangle_in_slab_by_index(1, true), 2);
     }
 
     #[test]
-    fn test_insert() {
-        let mut slab = Slab::new(vec![true, false, true]);
-        slab.insert(1, true);
-        assert_eq!(slab.data, 11);
-        assert_eq!(slab.length, 4);
-    }
-
-    #[test]
-    fn test_remove() {
-        let mut slab = Slab::new(vec![true, true, false, true]);
-        slab.remove(1);
-        assert_eq!(slab.data, 7);
-        assert_eq!(slab.length, 3);
-
-        let mut slab = Slab::new(vec![true, true, false, true]);
-        slab.remove(0);
-        assert_eq!(slab.data, 6);
-        assert_eq!(slab.length, 3);
-
-        // 10 tests with new data
-        let mut slab = Slab::new(vec![
-            true, false, true, true, false, true, true, false, true, true,
-        ]);
-        slab.remove(0);
-        assert_eq!(slab.data, 0b101101101);
-        assert_eq!(slab.length, 9);
-
-        let mut slab = Slab::new(vec![
-            true, false, true, true, false, true, true, false, true, true,
-        ]);
-        slab.remove(1);
-        println!("slab.data: {}", slab);
-        assert_eq!(slab.data, 0b101101101);
-        assert_eq!(slab.length, 9);
-
-        // let mut slab = Slab::new(vec![true, false, true, true, false, true, true, false, true, true]);
-        // slab.remove(2);
-        // assert_eq!(slab.data, 0b101101111);
-    }
-
-    #[test]
-    fn test_ones() {
+    #[should_panic(expected = "triangle index out of bounds")]
+    fn test_get_triangle_in_slab_by_index_panic() {
         let slab = Slab::new(vec![true, false, true]);
-        assert_eq!(slab.ones(), 2);
+        slab.get_triangle_in_slab_by_index(2, true);
     }
 
     #[test]
-    fn test_zeros() {
+    fn test_is_boundary() {
         let slab = Slab::new(vec![true, false, true]);
-        assert_eq!(slab.zeros(), 1);
+        assert!(slab.is_boundary(0, Direction::Left));
+        assert!(!slab.is_boundary(0, Direction::Right));
+        assert!(!slab.is_boundary(2, Direction::Left));
+        assert!(slab.is_boundary(2, Direction::Right));
     }
 
     #[test]
-    #[should_panic(expected = "slab length cannot be greater than 128")]
-    fn test_insert_panic() {
-        let mut slab = Slab::new(vec![true; 128]);
-        slab.insert(0, false);
+    fn test_not() {
+        let slab = Slab::new(vec![true, false, true]);
+        let negated_slab = !slab;
+        assert_eq!(negated_slab, Slab::new(vec![false, true, false]));
     }
 
     #[test]
-    #[should_panic(expected = "slab length cannot be less than 3")]
-    fn test_remove_panic() {
-        let mut slab = Slab::new(vec![true, false, true]);
-        slab.remove(1);
-        slab.remove(0);
+    fn test_display() {
+        let slab = Slab::new(vec![true, false, true]);
+        assert_eq!(format!("{}", slab), "^v^");
+    }
+
+    #[test]
+    fn test_all_slabs() {
+        let slabs: Vec<Slab> = all_slabs(2, 1).collect();
+        assert_eq!(slabs.len(), 3);
+        assert!(slabs.contains(&Slab::new(vec![true, true, false])));
+        assert!(slabs.contains(&Slab::new(vec![true, false, true])));
+        assert!(slabs.contains(&Slab::new(vec![false, true, true])));
     }
 }

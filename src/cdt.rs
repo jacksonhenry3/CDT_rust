@@ -1,8 +1,6 @@
-// ignore unused
-#![allow(unused)]
-
 use crate::slab::Slab;
-use crate::volume_profiles::{self, VolumeProfile};
+use crate::volume_profiles::VolumeProfile;
+use crate::Direction;
 use grafferous;
 
 use rand::seq::SliceRandom;
@@ -20,13 +18,18 @@ impl CDT {
     }
 
     pub fn random(volume_profile: &VolumeProfile) -> CDT {
-        let length = volume_profile.profile.len();
+        let _length = volume_profile.profile.len();
         let mut rng = rand::thread_rng();
         let mut slabs = Vec::new();
-        for (i, volume) in volume_profile.profile.iter().enumerate() {
+        for (i, volume) in volume_profile
+            .profile
+            .iter()
+            .enumerate()
+            .take(volume_profile.profile.len() - 1)
+        {
             //create a vec with the correct number of 1s and 0s
             let mut slab_data = vec![true; *volume];
-            slab_data.append(&mut vec![false; volume_profile.profile[(i + 1) % length]]);
+            slab_data.append(&mut vec![false; volume_profile.profile[i + 1]]);
 
             slab_data.shuffle(&mut rng);
 
@@ -43,11 +46,14 @@ impl CDT {
     }
 
     pub fn volume_profile(&self) -> VolumeProfile {
-        let mut result = vec![0; self.slabs.len()];
+        let l = self.slabs.len();
+        let mut result = vec![0; l + 1];
         for (i, slab) in self.iter().enumerate() {
             result[i] = slab.count_true();
         }
-        VolumeProfile::new(result.into())
+        result[l] = self[l - 1].count_false();
+
+        VolumeProfile::new(result)
     }
 
     pub fn number_of_triangles(&self) -> usize {
@@ -76,7 +82,7 @@ impl CDT {
         (time_index, space_index)
     }
 
-    //get triangle index (how many other triangles of the same type have already appeared in that slabn) from time and space index
+    //get triangle index (how many other triangles of the same type have already appeared in that slab) from time and space index
     pub fn get_triangle_index(&self, time_index: usize, space_index: usize) -> usize {
         let slab = &self.slabs[time_index];
         slab.get_triangle_index(space_index)
@@ -93,9 +99,16 @@ impl CDT {
 
         // connect the top and bottom layers.
         let other_time_index = if triangle {
-            (time_index + self.time_size() - 1).rem_euclid(self.time_size())
+            if time_index == 0 {
+                return None;
+            }
+            time_index - 1
         } else {
-            (time_index + 1).rem_euclid(self.time_size())
+            if time_index == self.time_size() - 1 {
+                return None;
+            }
+
+            time_index + 1
         };
 
         let other_slab = &self.slabs[other_time_index];
@@ -109,33 +122,11 @@ impl CDT {
         Some((other_time_index, other_space_index))
     }
 
-    pub fn all_transition_triangles(&self) -> Vec<(usize, usize)> {
-        let mut different_triangles = Vec::new();
-
-        for (time_index, slab) in self.slabs.iter().enumerate() {
-            for (i, value) in slab.into_iter().enumerate() {
-                if value != slab[(i + 1) % slab.len()] {
-                    different_triangles.push((time_index, i));
-                }
-            }
-        }
-
-        different_triangles
-    }
-
-    pub fn random_transition_triangle(&self) -> (usize, usize) {
-        let transition_triangles = self.all_transition_triangles();
-        //select a random transition triangle
-        *transition_triangles
-            .choose(&mut rand::thread_rng())
-            .unwrap()
-    }
-
     pub fn triangles(&self) -> Vec<(usize, usize, bool)> {
         let mut result = Vec::new();
         for (time_index, slab) in self.slabs.iter().enumerate() {
-            for (space_index, value) in slab.into_iter().enumerate() {
-                result.push((time_index, space_index, value));
+            for (space_index, value) in slab.iter().enumerate() {
+                result.push((time_index, space_index, *value));
             }
         }
         result
@@ -215,6 +206,31 @@ impl CDT {
 
         2 * self.time_size()
     }
+
+    //a function which returns an iterator of all nodes (time_index,space_index, direction) in the triangulation
+    pub fn nodes(&self) -> impl Iterator<Item = (usize, usize, Direction)> + '_ {
+        let right_true_nodes = self
+            .triangles()
+            .into_iter()
+            .filter(|(_t, _x, value)| *value)
+            .map(|(t, x, _value)| (t, x, Direction::Right));
+
+        let time_size = self.time_size() - 1;
+        let right_false_nodes = self[time_size]
+            .iter()
+            .enumerate()
+            .filter(|(_, value)| !*value)
+            .map(move |(x, _value)| (self.time_size() - 1, x, Direction::Right));
+
+        let right_nodes = right_true_nodes.chain(right_false_nodes);
+
+        let left_nodes = right_nodes
+            .clone()
+            .filter(|(t, x, _dir)| self.get_triangle_index(*t, *x) == 0)
+            .map(|(t, x, _old_dir)| (t, x, Direction::Left));
+
+        right_nodes.chain(left_nodes)
+    }
 }
 
 // display a CDT as a vertical stack of slabs
@@ -243,8 +259,8 @@ impl std::ops::DerefMut for CDT {
     }
 }
 
-fn measure_boundaries(cdt: &CDT) -> usize {
-    let _max = f64::NAN;
-    let transition_triangles = cdt.all_transition_triangles();
-    transition_triangles.len()
-}
+// fn measure_boundaries(cdt: &CDT) -> usize {
+//     let _max = f64::NAN;
+//     let transition_triangles = cdt.all_transition_triangles();
+//     transition_triangles.len()
+// }

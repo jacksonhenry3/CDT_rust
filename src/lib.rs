@@ -14,13 +14,16 @@ pub enum Direction {
     Right,
 }
 
-pub fn number_of_edges_arround_a_node(
+pub fn number_of_triangles_around_a_node(
     cdt: &CDT,
     time_index: usize,
     space_index: usize,
     direction: Direction,
 ) -> i32 {
-    let mut result = 2;
+    // all nodes have at least one spatial edge
+    let mut result = 1;
+
+    let triangle_value = cdt[time_index][space_index];
 
     let next_index = |space_index: usize, space_size: usize| -> Option<usize> {
         //return if the next space index is less than or equal to space size
@@ -50,20 +53,21 @@ pub fn number_of_edges_arround_a_node(
         // println!("next_space_index: {} {}", time_index, next_space_index);
 
         result += 1;
-        if cdt[time_index][next_space_index] == cdt[time_index][space_index] {
+        if cdt[time_index][next_space_index] == triangle_value {
             break;
         }
         next_space_index_option = next_index(next_space_index, space_size);
     }
 
-    if next_space_index_option.is_none() {
-        result += 1;
-    }
+    // if next_space_index_option.is_none() {
+    //     result += 1;
+    // }
 
     //get the temporal pair of the node
     if let Some((other_time_index, other_space_index)) =
         cdt.get_temporal_pair(time_index, space_index)
     {
+        result += 1;
         let other_space_size = cdt.slabs[other_time_index].len();
         let mut other_next_space_index_option = next_index(other_space_index, other_space_size);
 
@@ -80,45 +84,25 @@ pub fn number_of_edges_arround_a_node(
         }
     }
 
-    // if other_next_space_index_option.is_none() {
-    //     result += 1;
-    // }
-
-    // print the position and the number of edges
-
     result
 }
 
 // deficite angle
-pub fn deficite_angle(cdt: &CDT, time_index: usize, space_index: usize, side: Direction) -> f64 {
-    let number_of_edges = number_of_edges_arround_a_node(cdt, time_index, space_index, side);
-    let mut expected_number_of_edges = 6;
-    //figure out if the node is on spatial or temporal boundary
-    let is_spatial_boundary = cdt.slabs[time_index].is_boundary(space_index, side);
-
-    if is_spatial_boundary {
-        expected_number_of_edges = 4;
-    }
-
-    // println!("{} {}", number_of_edges, expected_number_of_edges);
-
-    (number_of_edges - expected_number_of_edges) as f64 // * std::f64::consts::PI / 3.0
+pub fn deficit_angle(num_adj_tri: i32) -> f64 {
+    let expected_number_of_triangles = 6.;
+    (num_adj_tri as f64) - expected_number_of_triangles // * std::f64::consts::PI / 3.0
 }
 
 //create a cdt iterator that iterates over all possible cdt with a given volume profile using slab_iterator
 pub fn cdt_iterator(volume_profile: Vec<usize>) -> impl Iterator<Item = CDT> {
     //assert that every element in the volume profile is less than 128 and greater than 3
-    assert!(
-        volume_profile.iter().all(|x| *x <= 128),
-        "volume profile must be less than 128"
-    );
 
     //create a vector of slab iterators where number of zeros is the next element in the volume profile
     let mut slab_iterators = vec![];
 
-    for (i, num_zeros) in volume_profile.iter().enumerate() {
-        let num_ones = volume_profile[(i + 1).rem_euclid(volume_profile.len())];
-        slab_iterators.push(all_slabs(*num_zeros, num_ones));
+    for (i, num_ones) in volume_profile.iter().enumerate().skip(1) {
+        let num_zeros = volume_profile[i - 1];
+        slab_iterators.push(all_slabs(num_zeros, *num_ones));
     }
 
     let mut current_slabs = vec![];
@@ -129,14 +113,14 @@ pub fn cdt_iterator(volume_profile: Vec<usize>) -> impl Iterator<Item = CDT> {
     slab_iterators[0] = all_slabs(volume_profile[0], volume_profile[1]);
 
     std::iter::from_fn(move || {
-        for i in 0..volume_profile.len() {
+        for i in 0..volume_profile.len() - 1 {
             let slab_option = slab_iterators[i].next();
 
             if let Some(slab) = slab_option {
                 current_slabs[i] = slab;
                 break;
             } else {
-                if i == volume_profile.len() - 1 {
+                if i == volume_profile.len() - 2 {
                     return None;
                 }
                 slab_iterators[i] = all_slabs(
@@ -151,79 +135,57 @@ pub fn cdt_iterator(volume_profile: Vec<usize>) -> impl Iterator<Item = CDT> {
     })
 }
 
-pub fn rsqrd_action(cdt: &CDT) -> f64 {
+pub fn eh_action(cdt: &CDT) -> f64 {
+    //calculate the einstien hilbert action of the cdt
     let mut result = 0f64;
-    let lambda = 1f64;
-    //sum the deficite angles of all nodes, all nodes are here identified as all lower right nodes of true triangles
-    for (time_index, space_index, _value) in
-        cdt.triangles().into_iter().filter(|(_x, _t, value)| *value)
-    {
-        let mut num_adj_tris =
-            number_of_edges_arround_a_node(cdt, time_index, space_index, Direction::Right);
+    let lambda = 0f64;
 
-        if cdt.slabs[time_index].is_boundary(space_index, Direction::Right) {
-            num_adj_tris -= 1;
-        }
+    //sum the deficite angles of all nodes, all nodes are here identified as all lower right nodes of true triangles
+    let nodes = cdt.nodes();
+
+    for (time_index, space_index, dir) in nodes {
+        // println!("{} {} {:?}", time_index, space_index, dir);
+        let num_adj_tris = number_of_triangles_around_a_node(cdt, time_index, space_index, dir);
         let area = num_adj_tris as f64 / 3.0;
 
-        result += area
-            * (deficite_angle(cdt, time_index, space_index, Direction::Right).powi(2)
-                / (area * area)
-                - lambda);
-
-        let triangle_index = cdt.get_triangle_index(time_index, space_index);
-        if triangle_index == 0 {
-            let mut num_adj_tris =
-                number_of_edges_arround_a_node(cdt, time_index, space_index, Direction::Left)
-                    as f32;
-            if cdt.slabs[time_index].is_boundary(space_index, Direction::Left) {
-                num_adj_tris -= 1.0;
-            }
-            let area = num_adj_tris as f64 / 3.0;
-
-            result += area
-                * (deficite_angle(cdt, time_index, space_index, Direction::Left).powi(2)
-                    / (area * area)
-                    - lambda);
-        }
+        // this could be made more efficient by passing num_adj_tris to deficit_angle
+        result += area * (deficit_angle(num_adj_tris) / area - lambda);
     }
+
+    let volume_profile = cdt.volume_profile().profile;
+
+    let temporal_boundary = volume_profile[0] + volume_profile[volume_profile.len() - 1];
+    let space_boundary = (volume_profile.len()) * 2;
+
+    result += (space_boundary as f64) * 3.0 + (temporal_boundary as f64) * 3.0;
 
     result
 }
 
-pub fn eh_action(cdt: &CDT) -> f64 {
+pub fn r_sqrd_action(cdt: &CDT) -> f64 {
     //calculate the einstien hilbert action of the cdt
     let mut result = 0f64;
-    let lambda = 1f64;
-    //sum the deficite angles of all nodes, all nodes are here identified as all lower right nodes of true triangles
-    for (time_index, space_index, _value) in
-        cdt.triangles().into_iter().filter(|(_x, _t, value)| *value)
-    {
-        let mut num_adj_tris =
-            number_of_edges_arround_a_node(cdt, time_index, space_index, Direction::Right);
+    let lambda = 0f64;
 
-        if cdt.slabs[time_index].is_boundary(space_index, Direction::Right) {
-            num_adj_tris -= 1;
-        }
+    //sum the deficite angles of all nodes, all nodes are here identified as all lower right nodes of true triangles
+    let nodes = cdt.nodes();
+
+    for (time_index, space_index, dir) in nodes {
+        // println!("{} {} {:?}", time_index, space_index, dir);
+        let num_adj_tris = number_of_triangles_around_a_node(cdt, time_index, space_index, dir);
         let area = num_adj_tris as f64 / 3.0;
 
-        result +=
-            area * (deficite_angle(cdt, time_index, space_index, Direction::Right) / area - lambda);
-
-        let triangle_index = cdt.get_triangle_index(time_index, space_index);
-        if triangle_index == 0 {
-            let mut num_adj_tris =
-                number_of_edges_arround_a_node(cdt, time_index, space_index, Direction::Left)
-                    as f32;
-            if cdt.slabs[time_index].is_boundary(space_index, Direction::Left) {
-                num_adj_tris -= 1.0;
-            }
-            let area = num_adj_tris as f64 / 3.0;
-
-            result += area
-                * (deficite_angle(cdt, time_index, space_index, Direction::Left) / area - lambda);
-        }
+        // this could be made more efficient by passing num_adj_tris to deficit_angle
+        let r = deficit_angle(num_adj_tris) / area;
+        result += area * (r * r - lambda);
     }
+
+    let volume_profile = cdt.volume_profile().profile;
+
+    let temporal_boundary = volume_profile[0] + volume_profile[volume_profile.len() - 1];
+    let space_boundary = (volume_profile.len()) * 2;
+
+    result += (space_boundary as f64) * 3.0 + (temporal_boundary as f64) * 3.0;
 
     result
 }
