@@ -41,7 +41,7 @@ mod tests {
 
         // divide each entry by num_samples to get the probability of each sample
         for count in counts.values_mut() {
-            *count = *count / num_samples as f64;
+            *count /= num_samples as f64;
         }
 
         // create the expected probability for each key
@@ -56,7 +56,7 @@ mod tests {
         // get the expected probability for each key
         let total = expected.values().sum::<f64>();
         for value in expected.values_mut() {
-            *value = *value / total;
+            *value /= total;
         }
 
         // compare the expected and actual probabilities

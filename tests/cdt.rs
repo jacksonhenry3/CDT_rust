@@ -2,7 +2,7 @@
 mod tests {
     use cdt_rust::{cdt::CDT, volume_profiles::VolumeProfile, Slab};
 
-    use super::*;
+    
 
     #[test]
     fn test_new() {

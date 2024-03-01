@@ -51,10 +51,10 @@ mod tests {
     #[test]
     fn test_is_boundary() {
         let slab = Slab::new(vec![true, false, true]);
-        assert_eq!(slab.is_boundary(0, Direction::Left), true);
-        assert_eq!(slab.is_boundary(0, Direction::Right), false);
-        assert_eq!(slab.is_boundary(2, Direction::Left), false);
-        assert_eq!(slab.is_boundary(2, Direction::Right), true);
+        assert!(slab.is_boundary(0, Direction::Left));
+        assert!(!slab.is_boundary(0, Direction::Right));
+        assert!(!slab.is_boundary(2, Direction::Left));
+        assert!(slab.is_boundary(2, Direction::Right));
     }
 
     #[test]
