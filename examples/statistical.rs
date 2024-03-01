@@ -57,7 +57,7 @@ fn main() {
         print!("\r{:.2}%", progress_percent);
 
         // Generate a random CDT with volumeprofile vp
-        let cdt = cdt::CDT::random(&vp);
+        let cdt = cdt::CDT::random(vp);
         let action = cdt_rust::r_sqrd_action(&cdt);
 
         let vol_prof = vp.profile.iter().join(":");

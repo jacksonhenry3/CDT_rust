@@ -1,9 +1,9 @@
-use cdt_rust::slab::all_slabs;
+
 // run this with cargo r -r --example random_sample_from_large_volume
 use cdt_rust::volume_profiles::{
-    generate_sample_profile, num_cdts_in_profile, volume_profile_samples, VolumeProfile,
+    num_cdts_in_profile, VolumeProfile,
 };
-use cdt_rust::{self, cdt};
+use cdt_rust::{self};
 use rayon::prelude::*;
 use std::fs::File;
 use std::io::Write;
@@ -35,9 +35,9 @@ fn main() {
         print!("\r{:.2}%", progress_percent);
 
         // Generate a random CDT with volumeprofile vp
-        let action = cdt_rust::r_sqrd_action(&cdt);
+        
 
-        action
+        cdt_rust::r_sqrd_action(&cdt)
     });
 
     println!("Saving to file");

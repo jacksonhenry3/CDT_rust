@@ -1,5 +1,5 @@
 // run this with cargo r -r --example random_sample_from_large_volume
-use cdt_rust::volume_profiles::{generate_sample_profile, volume_profile_samples, VolumeProfile};
+use cdt_rust::volume_profiles::{VolumeProfile};
 use cdt_rust::{self, cdt};
 use rayon::prelude::*;
 use std::fs::File;
@@ -22,23 +22,23 @@ fn main() {
     let length = num_samples;
 
     // Calculate actions in parallel
-    let actions = (0..num_samples).into_par_iter().map(|i| {
+    let actions = (0..num_samples).into_par_iter().map(|_i| {
         let progress = progress_counter.fetch_add(1, Ordering::SeqCst);
         let progress_percent = 100.0 * progress as f64 / (length as f64);
         print!("\r{:.2}%", progress_percent);
 
         // Generate a random CDT with volumeprofile vp
         let cdt = cdt::CDT::random(&volume_profile);
-        let action = cdt_rust::r_sqrd_action(&cdt);
+        
 
         // let vol_prof = vp.profile.make_contiguous().iter().join(":");
-        action
+        cdt_rust::r_sqrd_action(&cdt)
     });
 
     println!("Saving to file");
 
     // Write results to file
-    for (action) in actions.collect::<Vec<_>>() {
+    for action in actions.collect::<Vec<_>>() {
         writeln!(w, "{}", action).unwrap();
     }
 }

@@ -1,9 +1,9 @@
 use crate::slab::Slab;
-use crate::volume_profiles::{self, VolumeProfile};
+use crate::volume_profiles::{VolumeProfile};
 use crate::Direction;
 use grafferous;
 
-use itertools::Itertools;
+
 use rand::seq::SliceRandom;
 use rand::Rng;
 /// A CDT is a sequence of slabs, where the last slab is connected to the first slab.
@@ -19,7 +19,7 @@ impl CDT {
     }
 
     pub fn random(volume_profile: &VolumeProfile) -> CDT {
-        let length = volume_profile.profile.len();
+        let _length = volume_profile.profile.len();
         let mut rng = rand::thread_rng();
         let mut slabs = Vec::new();
         for (i, volume) in volume_profile
@@ -30,7 +30,7 @@ impl CDT {
         {
             //create a vec with the correct number of 1s and 0s
             let mut slab_data = vec![true; *volume];
-            slab_data.append(&mut vec![false; volume_profile.profile[(i + 1)]]);
+            slab_data.append(&mut vec![false; volume_profile.profile[i + 1]]);
 
             slab_data.shuffle(&mut rng);
 
@@ -54,7 +54,7 @@ impl CDT {
         }
         result[l] = self[l - 1].count_false();
 
-        VolumeProfile::new(result.into())
+        VolumeProfile::new(result)
     }
 
     pub fn number_of_triangles(&self) -> usize {
@@ -103,13 +103,13 @@ impl CDT {
             if time_index == 0 {
                 return None;
             }
-            (time_index - 1)
+            time_index - 1
         } else {
             if time_index == self.time_size() - 1 {
                 return None;
             }
 
-            (time_index + 1)
+            time_index + 1
         };
 
         let other_slab = &self.slabs[other_time_index];
@@ -126,7 +126,7 @@ impl CDT {
     pub fn triangles(&self) -> Vec<(usize, usize, bool)> {
         let mut result = Vec::new();
         for (time_index, slab) in self.slabs.iter().enumerate() {
-            for (space_index, value) in slab.into_iter().enumerate() {
+            for (space_index, value) in slab.iter().enumerate() {
                 result.push((time_index, space_index, *value));
             }
         }
@@ -209,7 +209,7 @@ impl CDT {
     }
 
     //a function which returns an iterator of all nodes (time_index,space_index, direction) in the triangulation
-    pub fn nodes<'a>(&'a self) -> impl Iterator<Item = (usize, usize, Direction)> + 'a {
+    pub fn nodes(&self) -> impl Iterator<Item = (usize, usize, Direction)> + '_ {
         let right_true_nodes = self
             .triangles()
             .into_iter()
@@ -218,7 +218,7 @@ impl CDT {
 
         let time_size = self.time_size() - 1;
         let right_false_nodes = self[time_size]
-            .into_iter()
+            .iter()
             .enumerate()
             .filter(|(_, value)| !*value)
             .map(move |(x, _value)| (self.time_size() - 1, x, Direction::Right));

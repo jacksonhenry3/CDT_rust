@@ -2,103 +2,61 @@ use cdt_rust::Slab;
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
+    use cdt_rust::Direction;
+
     use super::*;
 
     #[test]
     fn test_new() {
         let slab = Slab::new(vec![true, false, true]);
-        assert_eq!(slab.length, 3);
-        assert_eq!(slab.data, 5);
+        assert_eq!(slab.data.len(), 3);
     }
 
     #[test]
-    fn test_set() {
-        let mut slab = Slab::new(vec![true, false, true]);
-        slab.set(1, true);
-        assert_eq!(slab.data, 7);
+    fn test_count_true() {
+        let slab = Slab::new(vec![true, false, true]);
+        assert_eq!(slab.count_true(), 2);
+    }
+
+    #[test]
+    fn test_count_false() {
+        let slab = Slab::new(vec![true, false, true]);
+        assert_eq!(slab.count_false(), 1);
+    }
+
+    #[test]
+    fn test_string() {
+        let slab = Slab::new(vec![true, false, true]);
+        assert_eq!(slab.string(), "^v^");
     }
 
     #[test]
     fn test_get_triangle_index() {
-        let slab = Slab::new(vec![true, false, true]);
-        assert_eq!(slab.get_triangle_index(0), 0);
-        assert_eq!(slab.get_triangle_index(1), 0);
+        let slab = Slab::new(vec![true, false, true, false]);
         assert_eq!(slab.get_triangle_index(2), 1);
     }
 
     #[test]
-    fn test_get_triangle_in_slab_by_index() {
+    #[should_panic(expected = "triangle index out of bounds")]
+    fn test_get_triangle_in_slab_by_index_out_of_bounds() {
+        let slab = Slab::new(vec![true, false, true, false]);
+        slab.get_triangle_in_slab_by_index(5, true);
+    }
+
+    #[test]
+    fn test_is_boundary() {
+        let slab = Slab::new(vec![true, false, true, false]);
+        assert_eq!(slab.is_boundary(0, Direction::Left), true);
+        assert_eq!(slab.is_boundary(3, Direction::Right), true);
+        assert_eq!(slab.is_boundary(1, Direction::Left), false);
+    }
+
+    #[test]
+    fn test_not() {
         let slab = Slab::new(vec![true, false, true]);
-        assert_eq!(slab.get_triangle_in_slab_by_index(0, true), 0);
-        assert_eq!(slab.get_triangle_in_slab_by_index(0, false), 1);
-        assert_eq!(slab.get_triangle_in_slab_by_index(1, true), 2);
-    }
-
-    #[test]
-    fn test_insert() {
-        let mut slab = Slab::new(vec![true, false, true]);
-        slab.insert(1, true);
-        assert_eq!(slab.data, 11);
-        assert_eq!(slab.length, 4);
-    }
-
-    #[test]
-    fn test_remove() {
-        let mut slab = Slab::new(vec![true, true, false, true]);
-        slab.remove(1);
-        assert_eq!(slab.data, 7);
-        assert_eq!(slab.length, 3);
-
-        let mut slab = Slab::new(vec![true, true, false, true]);
-        slab.remove(0);
-        assert_eq!(slab.data, 6);
-        assert_eq!(slab.length, 3);
-
-        // 10 tests with new data
-        let mut slab = Slab::new(vec![
-            true, false, true, true, false, true, true, false, true, true,
-        ]);
-        slab.remove(0);
-        assert_eq!(slab.data, 0b101101101);
-        assert_eq!(slab.length, 9);
-
-        let mut slab = Slab::new(vec![
-            true, false, true, true, false, true, true, false, true, true,
-        ]);
-        slab.remove(1);
-        println!("slab.data: {}", slab);
-        assert_eq!(slab.data, 0b101101101);
-        assert_eq!(slab.length, 9);
-
-        // let mut slab = Slab::new(vec![true, false, true, true, false, true, true, false, true, true]);
-        // slab.remove(2);
-        // assert_eq!(slab.data, 0b101101111);
-    }
-
-    #[test]
-    fn test_ones() {
-        let slab = Slab::new(vec![true, false, true]);
-        assert_eq!(slab.ones(), 2);
-    }
-
-    #[test]
-    fn test_zeros() {
-        let slab = Slab::new(vec![true, false, true]);
-        assert_eq!(slab.zeros(), 1);
-    }
-
-    #[test]
-    #[should_panic(expected = "slab length cannot be greater than 128")]
-    fn test_insert_panic() {
-        let mut slab = Slab::new(vec![true; 128]);
-        slab.insert(0, false);
-    }
-
-    #[test]
-    #[should_panic(expected = "slab length cannot be less than 3")]
-    fn test_remove_panic() {
-        let mut slab = Slab::new(vec![true, false, true]);
-        slab.remove(1);
-        slab.remove(0);
+        let not_slab = !slab;
+        assert_eq!(not_slab.data, Arc::from(vec![false, true, false]));
     }
 }

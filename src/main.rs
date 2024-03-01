@@ -18,7 +18,7 @@ fn write_data(vol: usize) {
 
     let profiles = volume_profiles(vol, time);
     let result = profiles.into_par_iter().map(|profile| {
-        let profile_vec: Vec<usize> = profile.profile.into();
+        let profile_vec: Vec<usize> = profile.profile;
         let cdt_iterator = cdt_iterator(profile_vec.clone()).enumerate();
         cdt_iterator.map(|(i, cdt)| {
             let action = eh_action(&cdt);

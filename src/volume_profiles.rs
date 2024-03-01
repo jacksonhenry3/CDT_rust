@@ -5,7 +5,7 @@ use rand::{thread_rng, Rng};
 use rayon::prelude::*;
 use std::collections::HashSet;
 use std::hash::Hash;
-use std::ops::Add;
+
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::utils;
@@ -124,7 +124,7 @@ pub fn volume_profiles(volume: usize, time_size: usize) -> HashSet<VolumeProfile
             result[i] = num - prev;
             prev = num;
         }
-        final_result.insert(VolumeProfile::new(result.into()));
+        final_result.insert(VolumeProfile::new(result));
     }
 
     // println!("{:?} profiles", final_result);
@@ -138,9 +138,9 @@ pub fn log_num_cdts_in_profile(volume_profile: &VolumeProfile, scale_factor: f64
     for i in 0..(len - 1) {
         let n = volume_profile.profile[i];
         let m = volume_profile.profile[i + 1];
-        log_count_sum += utils::log_choose(n + m, m) as f64;
+        log_count_sum += utils::log_choose(n + m, m);
     }
-    (log_count_sum - scale_factor.ln())
+    log_count_sum - scale_factor.ln()
 }
 
 pub fn num_cdts_in_profile(volume_profile: &VolumeProfile) -> u128 {
@@ -148,7 +148,7 @@ pub fn num_cdts_in_profile(volume_profile: &VolumeProfile) -> u128 {
     let len = volume_profile.profile.len();
     for i in 0..len - 1 {
         let n = volume_profile.profile[i];
-        let m = volume_profile.profile[(i + 1)];
+        let m = volume_profile.profile[i + 1];
         count = match count.checked_mul(utils::choose(n + m, m) as u128) {
             Some(x) => x,
             None => panic!("Overflow"),
