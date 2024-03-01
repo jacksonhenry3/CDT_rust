@@ -54,10 +54,10 @@ pub fn acceptance_function(
     old_profile: VolumeProfile,
     new_profile: VolumeProfile,
 ) -> VolumeProfile {
-    let log_old_num_cdts = log_num_cdts_in_profile(&old_profile, 10.0);
-    let log_new_num_cdts = log_num_cdts_in_profile(&new_profile, 10.0);
+    let log_old_num_cdts = num_cdts_in_profile(&old_profile);
+    let log_new_num_cdts = num_cdts_in_profile(&new_profile);
 
-    let acceptance = (log_new_num_cdts - log_old_num_cdts).exp();
+    let acceptance = (log_new_num_cdts as f64 / log_old_num_cdts as f64);
 
     //random number between 0 and 1
     let random_number = rand::thread_rng().gen_range(0.0..1.0);
@@ -91,19 +91,23 @@ pub fn volume_profile_samples(
         .par_chunks(rayon::current_num_threads())
         .map(|chunk| {
             let mut current_state = initial_state.clone();
+            let mut states = Vec::new();
 
             for _sim_index in chunk {
                 let progress = progress_counter.fetch_add(1, Ordering::SeqCst);
                 let progress_percent = 100.0 * progress as f64 / num_samples as f64;
-                print!("\r{:.2}%", progress_percent);
+                println!("\r{:.2}%", progress_percent);
                 for _ in 0..num_steps {
                     let proposed_vp = step(&current_state);
                     current_state = acceptance_function(current_state, proposed_vp);
                 }
+
+                states.push(current_state.clone());
             }
 
-            current_state
+            states
         })
+        .flatten()
         .collect();
 
     samples

@@ -1,8 +1,7 @@
 use crate::slab::Slab;
-use crate::volume_profiles::{VolumeProfile};
+use crate::volume_profiles::VolumeProfile;
 use crate::Direction;
 use grafferous;
-
 
 use rand::seq::SliceRandom;
 use rand::Rng;

@@ -21,6 +21,11 @@ impl Slab {
         }
     }
 
+    /// Returns the length of the slab.
+    pub fn length(&self) -> usize {
+        self.data.len()
+    }
+
     /// Returns the count of true values in the slab.
     pub fn count_true(&self) -> usize {
         self.data.iter().filter(|&b| *b).count()
