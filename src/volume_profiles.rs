@@ -1,3 +1,4 @@
+use cached::proc_macro::cached;
 use core::panic;
 use itertools::Itertools;
 use rand::seq::SliceRandom;
@@ -24,28 +25,18 @@ impl VolumeProfile {
 
 pub fn step(volume_profile: &VolumeProfile) -> VolumeProfile {
     let mut profile = volume_profile.profile.clone();
-
-    // first create a list of integers 1-len and permute them randomly
     let mut rng = thread_rng();
 
     let mut indices: Vec<usize> = (0..volume_profile.profile.len()).collect();
     indices.shuffle(&mut rng);
 
-    // pair each index with the next index
-    let pairs = indices.chunks(2);
-
-    for pair in pairs {
-        if pair.len() == 1 {
-            break;
-        }
-        let i = pair[0];
-        let j = pair[1];
-
-        // if the perturbation amount is greater than or equal to the size of profile[i] reduce the perturbation to the size of profile[i]-1
+    let mut i = 0;
+    while i < profile.len() - 1 {
+        let j = i + 1;
         let perturbation_amount = 1.min(profile[i] - 1);
-
         profile[i] -= perturbation_amount;
         profile[j] += perturbation_amount;
+        i += 2;
     }
 
     VolumeProfile { profile }
@@ -53,10 +44,10 @@ pub fn step(volume_profile: &VolumeProfile) -> VolumeProfile {
 
 pub fn acceptance_function(
     old_profile: VolumeProfile,
+    log_old_num_cdts: f64,
     new_profile: VolumeProfile,
-) -> VolumeProfile {
-    let log_old_num_cdts = log_num_cdts_in_profile(&old_profile, 10.0);
-    let log_new_num_cdts = log_num_cdts_in_profile(&new_profile, 10.0);
+) -> (VolumeProfile, f64) {
+    let (new_profile, log_new_num_cdts) = log_num_cdts_in_profile(new_profile);
 
     let acceptance = (log_new_num_cdts - log_old_num_cdts).exp();
 
@@ -64,17 +55,20 @@ pub fn acceptance_function(
     let random_number = rand::thread_rng().gen_range(0.0..1.0);
 
     if acceptance > random_number {
-        new_profile
+        (new_profile, log_new_num_cdts)
     } else {
-        old_profile
+        (old_profile, log_old_num_cdts)
     }
 }
 
 pub fn generate_sample_profile(initial_state: VolumeProfile, num_steps: usize) -> VolumeProfile {
     let mut current_state = initial_state;
+    let mut log_current_multiplicty = log_num_cdts_in_profile(current_state.clone()).1;
+
     for _ in 0..num_steps {
         let proposed_vp = step(&current_state);
-        current_state = acceptance_function(current_state, proposed_vp);
+        (current_state, log_current_multiplicty) =
+            acceptance_function(current_state, log_current_multiplicty, proposed_vp);
     }
     current_state
 }
@@ -92,6 +86,7 @@ pub fn volume_profile_samples(
         .par_chunks(rayon::current_num_threads())
         .map(|chunk| {
             let mut current_state = initial_state.clone();
+            let mut log_current_multiplicity = log_num_cdts_in_profile(current_state.clone()).1;
             let mut states = Vec::new();
 
             for _sim_index in chunk {
@@ -101,7 +96,8 @@ pub fn volume_profile_samples(
                 print!("\r{:.2}%", progress_percent);
                 for _ in 0..num_steps {
                     let proposed_vp = step(&current_state);
-                    current_state = acceptance_function(current_state, proposed_vp);
+                    (current_state, log_current_multiplicity) =
+                        acceptance_function(current_state, log_current_multiplicity, proposed_vp);
                 }
 
                 states.push(current_state.clone());
@@ -118,8 +114,7 @@ pub fn volume_profile_samples(
 }
 
 pub fn volume_profiles(volume: usize, time_size: usize) -> HashSet<VolumeProfile> {
-    assert!(volume % 2 == 0, "Volume must be even");
-    let total_spatial_length = volume / 2;
+    let total_spatial_length = volume;
 
     let all_dividers = (1..total_spatial_length).combinations(time_size - 1);
     let mut final_result = HashSet::new();
@@ -139,16 +134,16 @@ pub fn volume_profiles(volume: usize, time_size: usize) -> HashSet<VolumeProfile
     final_result
 }
 
-// #[cached]
-pub fn log_num_cdts_in_profile(volume_profile: &VolumeProfile, scale_factor: f64) -> f64 {
+#[cached]
+pub fn log_num_cdts_in_profile(volume_profile: VolumeProfile) -> (VolumeProfile, f64) {
+    let scale_factor = 0.001 as f64;
     let mut log_count_sum = 0f64;
-    let len = volume_profile.profile.len();
-    for i in 0..(len - 1) {
-        let n = volume_profile.profile[i];
-        let m = volume_profile.profile[i + 1];
+    for window in volume_profile.profile.windows(2) {
+        let n = window[0];
+        let m = window[1];
         log_count_sum += utils::log_choose(n + m, m);
     }
-    log_count_sum - scale_factor.ln()
+    (volume_profile, log_count_sum - scale_factor.ln())
 }
 
 pub fn num_cdts_in_profile(volume_profile: &VolumeProfile) -> u128 {

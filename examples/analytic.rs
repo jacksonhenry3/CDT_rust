@@ -10,7 +10,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 fn main() {
     // Parameters
     let time_size = 5;
-    let volume = 20;
+    let volume = 15;
 
     println!("Generating initial volume profile");
 

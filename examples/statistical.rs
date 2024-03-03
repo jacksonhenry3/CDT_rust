@@ -9,11 +9,11 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 fn main() {
     // Parameters
-    let volume = 20 * 10; // Length of each side of the volume
-    let time_size = 20;
-    let num_samples = 100_000; // Number of samples to generate
+    let volume = 100; // Volume of the CDT
+    let time_size = 10;
+    let num_samples = 1_000_000; // Number of samples to generate
 
-    // Number of iterations between samples, it should be two sweeps
+    // Number of iterations between samples, it should be a sweep?
     let num_iterations = 2 * ((volume as f32).sqrt() as usize);
 
     println!("Generating initial volume profile");
