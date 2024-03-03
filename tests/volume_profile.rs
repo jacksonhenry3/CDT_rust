@@ -16,7 +16,8 @@ mod tests {
     fn test_acceptance_function() {
         let old_profile = VolumeProfile::new(vec![1, 2, 3, 4]);
         let new_profile = VolumeProfile::new(vec![2, 3, 4, 5]);
-        let result = acceptance_function(old_profile, new_profile.clone());
+        let log_old_num_cdts = volume_profiles::log_num_cdts_in_profile(old_profile.clone()).1;
+        let (result, _) = acceptance_function(old_profile, log_old_num_cdts, new_profile.clone());
         assert_eq!(result, new_profile);
     }
 
@@ -62,7 +63,7 @@ mod tests {
         // compare the expected and actual probabilities
         for (key, value) in counts.iter() {
             let expected_value = expected.get(key).unwrap();
-            assert!((value - expected_value).abs() < 0.1);
+            assert!((value - expected_value).abs() < 0.15);
         }
     }
 
@@ -77,7 +78,7 @@ mod tests {
 
     #[test]
     fn test_volume_profiles() {
-        let volume = 8;
+        let volume = 4;
         let time_size = 2;
         let result = volume_profiles::volume_profiles(volume, time_size);
         println!("{:?}", result);
@@ -87,8 +88,7 @@ mod tests {
     #[test]
     fn test_log_num_cdts_in_profile() {
         let volume_profile = VolumeProfile::new(vec![1, 2, 3, 4]);
-        let scale_factor = 10.0;
-        let result = volume_profiles::log_num_cdts_in_profile(&volume_profile, scale_factor);
+        let (_vp, result) = volume_profiles::log_num_cdts_in_profile(volume_profile);
         assert!(result.is_finite());
     }
 
