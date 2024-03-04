@@ -80,7 +80,6 @@ pub fn volume_profile_samples(
 ) -> Vec<VolumeProfile> {
     let progress_counter = AtomicUsize::new(0);
 
-    println!("Generating samples");
     let samples: Vec<VolumeProfile> = (0..num_samples)
         .collect::<Vec<_>>()
         .par_chunks(rayon::current_num_threads())
@@ -89,7 +88,7 @@ pub fn volume_profile_samples(
             let mut log_current_multiplicity = log_num_cdts_in_profile(current_state.clone()).1;
             let mut states = Vec::new();
 
-            for _sim_index in chunk {
+            for _ in chunk {
                 let progress = progress_counter.fetch_add(1, Ordering::SeqCst);
                 let progress_percent = 100.0 * progress as f64 / num_samples as f64;
                 io::stdout().flush().unwrap();

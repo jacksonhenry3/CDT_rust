@@ -22,16 +22,12 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_sample_profile() {
+    fn test_volume_profile_samples_complete() {
         // this is a stochastic test, that makes sure the acceptance function has error less than 10%
         let initial_state = VolumeProfile::new(vec![3, 3, 3]);
         //  generate 10_000 samples profiles and make sure none of them are significantly more likely than the others
         let num_steps = 10;
-        let mut samples = Vec::new();
-        for _ in 0..10_000 {
-            let sample = generate_sample_profile(initial_state.clone(), num_steps);
-            samples.push(sample);
-        }
+        let samples = volume_profile_samples(initial_state.clone(), num_steps, 10_000);
 
         let num_samples = samples.len();
         let mut counts = std::collections::HashMap::new();
@@ -63,7 +59,7 @@ mod tests {
         // compare the expected and actual probabilities
         for (key, value) in counts.iter() {
             let expected_value = expected.get(key).unwrap();
-            assert!((value - expected_value).abs() < 0.15);
+            assert!((value - expected_value).abs() < 0.05);
         }
     }
 

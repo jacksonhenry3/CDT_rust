@@ -65,11 +65,14 @@ fn benchmark_volume_profile_samples(c: &mut Criterion) {
     c.bench_function("volume_profile_samples", |b| {
         // put the volume profile in a black box
         let volume_profile = black_box(volume_profiles::VolumeProfile::new(vec![20; 20]));
-        let num_iterations = 100;
+        let num_iterations = 40;
         let num_samples = 100;
         b.iter(|| {
-            let result =
-                volume_profiles::generate_sample_profile(volume_profile.clone(), num_iterations);
+            let result = volume_profiles::volume_profile_samples(
+                volume_profile.clone(),
+                num_iterations,
+                num_samples,
+            );
         });
     });
 }

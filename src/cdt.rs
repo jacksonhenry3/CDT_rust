@@ -53,7 +53,7 @@ impl CDT {
         }
         result[l] = self[l - 1].count_false();
 
-        VolumeProfile::new(result)
+        VolumeProfile::new(result.into())
     }
 
     pub fn number_of_triangles(&self) -> usize {

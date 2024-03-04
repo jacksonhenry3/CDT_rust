@@ -23,7 +23,7 @@ fn main() {
     initial_volume_profile[time_size - 1] = volume - (volume / time_size) * (time_size - 1);
 
     let initial_volume_profile = generate_sample_profile(
-        VolumeProfile::new(initial_volume_profile),
+        VolumeProfile::new(initial_volume_profile.into()),
         num_iterations * 5, //initialize with 5 times the number of iterations to make sure we are starting from a random spot. Shouldn't be needed, but makes me feel better.
     );
 
