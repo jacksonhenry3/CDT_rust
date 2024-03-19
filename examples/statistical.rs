@@ -9,12 +9,12 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 fn main() {
     // Parameters
-    let volume = 100; // Volume of the CDT
-    let time_size = 10;
-    let num_samples = 1_000_000; // Number of samples to generate
+    let volume = 10; // Volume of the CDT
+    let time_size = 5;
+    let num_samples = 100_000; // Number of samples to generate
 
     // Number of iterations between samples, it should be a sweep?
-    let num_iterations = 2 * ((volume as f32).sqrt() as usize);
+    let num_iterations = 2 * volume / time_size;
 
     println!("Generating initial volume profile");
 
@@ -27,7 +27,7 @@ fn main() {
         num_iterations * 5, //initialize with 5 times the number of iterations to make sure we are starting from a random spot. Shouldn't be needed, but makes me feel better.
     );
 
-    println!("Initial volume profile generated, beginning sample generation");
+    println!("Initial volume profile generated, beginning sample generation with {} steps between samples", num_iterations);
 
     // Generate volume profile samples
     let mut samples = volume_profile_samples(initial_volume_profile, num_iterations, num_samples);
@@ -60,7 +60,7 @@ fn main() {
         let cdt = cdt::CDT::random(vp);
         let action = cdt_rust::r_sqrd_action(&cdt);
 
-        let volume_profile_string = vp.profile.iter().join(":");
+        let volume_profile_string = vp.profile.iter().join("_");
         (volume_profile_string, action)
     });
 

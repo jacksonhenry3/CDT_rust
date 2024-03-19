@@ -30,13 +30,12 @@ pub fn step(volume_profile: &VolumeProfile) -> VolumeProfile {
     let mut indices: Vec<usize> = (0..volume_profile.profile.len()).collect();
     indices.shuffle(&mut rng);
 
-    let mut i = 0;
-    while i < profile.len() - 1 {
-        let j = i + 1;
-        let perturbation_amount = 1.min(profile[i] - 1);
-        profile[i] -= perturbation_amount;
-        profile[j] += perturbation_amount;
-        i += 2;
+    for window in indices.chunks(2) {
+        if let [i, j] = window {
+            let perturbation_amount = 1.min(profile[*i] - 1);
+            profile[*i] -= perturbation_amount;
+            profile[*j] += perturbation_amount;
+        }
     }
 
     VolumeProfile { profile }
@@ -67,6 +66,7 @@ pub fn generate_sample_profile(initial_state: VolumeProfile, num_steps: usize) -
 
     for _ in 0..num_steps {
         let proposed_vp = step(&current_state);
+        println!("{:?}", proposed_vp);
         (current_state, log_current_multiplicty) =
             acceptance_function(current_state, log_current_multiplicty, proposed_vp);
     }

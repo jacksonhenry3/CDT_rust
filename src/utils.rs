@@ -14,6 +14,7 @@ pub fn choose(n: usize, k: usize) -> usize {
     }
 }
 
+// doesnt seem to matter
 #[cached]
 fn log_fact(n: usize) -> f64 {
     if n < 2 {
