@@ -66,7 +66,6 @@ pub fn generate_sample_profile(initial_state: VolumeProfile, num_steps: usize) -
 
     for _ in 0..num_steps {
         let proposed_vp = step(&current_state);
-        println!("{:?}", proposed_vp);
         (current_state, log_current_multiplicty) =
             acceptance_function(current_state, log_current_multiplicty, proposed_vp);
     }
