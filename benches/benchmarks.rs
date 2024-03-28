@@ -19,7 +19,7 @@ fn benchmark_vp_step(c: &mut Criterion) {
         let volume_profile = black_box(volume_profiles::VolumeProfile::new(vec![20; 20]));
         let cdt = CDT::random(&volume_profile);
         b.iter(|| {
-            let new_profile = volume_profiles::step(&volume_profile);
+            let new_profile = volume_profiles::step(&volume_profile, 1);
         });
     });
 }
@@ -72,7 +72,31 @@ fn benchmark_volume_profile_samples(c: &mut Criterion) {
                 volume_profile.clone(),
                 num_iterations,
                 num_samples,
+                1,
             );
+        });
+    });
+}
+
+// benchmark calculating the r squared action
+fn benchmark_r_sqrd_action(c: &mut Criterion) {
+    c.bench_function("r_sqrd_action", |b| {
+        // put the volume profile in a black box
+        let volume_profile = black_box(volume_profiles::VolumeProfile::new(vec![128; 128]));
+        let cdt = CDT::random(&volume_profile);
+        b.iter(|| {
+            let result = cdt_rust::r_sqrd_action(&cdt);
+        });
+    });
+}
+
+// benchmark randomcdt
+fn benchmark_random_cdt(c: &mut Criterion) {
+    c.bench_function("random_cdt", |b| {
+        // put the volume profile in a black box
+        let volume_profile = black_box(volume_profiles::VolumeProfile::new(vec![128; 128]));
+        b.iter(|| {
+            let result = CDT::random(&volume_profile);
         });
     });
 }
@@ -84,7 +108,9 @@ criterion_group!(
     // benchmark_vp_step,
     // becnchmark_vp_acceptance_function,
     // benchmark_log_num_cdts_in_profile,
-    benchmark_volume_profile_samples
+    benchmark_volume_profile_samples,
+    benchmark_r_sqrd_action,
+    benchmark_random_cdt
 );
 
 criterion_main!(benches);

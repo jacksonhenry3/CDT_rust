@@ -10,7 +10,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 fn main() {
     // Parameters
     let volume = 10;
-    let time_size = 5;
+    let time_size = 4;
 
     println!("Generating initial volume profile");
 
@@ -33,11 +33,14 @@ fn main() {
 
     // Calculate actions in parallel
     volume_profiles.par_iter_mut().for_each(|vp| {
-        let progress = progress_counter.fetch_add(1, Ordering::SeqCst);
-        let progress_percent = 100.0 * progress as f64 / (length as f64);
+        #[cfg(debug_assertions)]
+        {
+            let progress = progress_counter.fetch_add(1, Ordering::SeqCst);
+            let progress_percent = 100.0 * progress as f64 / (length as f64);
 
-        io::stdout().flush().unwrap();
-        print!("\r{:.2}%", progress_percent);
+            io::stdout().flush().unwrap();
+            print!("\r{:.2}%", progress_percent);
+        }
 
         let volume_profile_string = vp.profile.iter().join("_");
         let path = format!("{}{}.csv", base_path, volume_profile_string);

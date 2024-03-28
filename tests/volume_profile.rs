@@ -8,7 +8,7 @@ mod tests {
     #[test]
     fn test_step() {
         let volume_profile = VolumeProfile::new(vec![1, 2, 3, 4]);
-        let new_profile = step(&volume_profile);
+        let new_profile = step(&volume_profile, 1);
         assert_ne!(volume_profile, new_profile);
     }
 
@@ -17,7 +17,8 @@ mod tests {
         let old_profile = VolumeProfile::new(vec![1, 2, 3, 4]);
         let new_profile = VolumeProfile::new(vec![2, 3, 4, 5]);
         let log_old_num_cdts = volume_profiles::log_num_cdts_in_profile(old_profile.clone()).1;
-        let (result, _) = acceptance_function(old_profile, log_old_num_cdts, new_profile.clone());
+        let (result, _, _) =
+            acceptance_function(old_profile, log_old_num_cdts, new_profile.clone());
         assert_eq!(result, new_profile);
     }
 
@@ -27,7 +28,7 @@ mod tests {
         let initial_state = VolumeProfile::new(vec![3, 3, 3]);
         //  generate 10_000 samples profiles and make sure none of them are significantly more likely than the others
         let num_steps = 10;
-        let samples = volume_profile_samples(initial_state.clone(), num_steps, 10_000);
+        let samples = volume_profile_samples(initial_state.clone(), num_steps, 10_000, 1);
 
         let num_samples = samples.len();
         let mut counts = std::collections::HashMap::new();
@@ -68,7 +69,7 @@ mod tests {
         let initial_state = VolumeProfile::new(vec![3, 2, 3, 4]);
         let num_steps = 10;
         let num_samples = 5;
-        let result = volume_profile_samples(initial_state, num_steps, num_samples);
+        let result = volume_profile_samples(initial_state, num_steps, num_samples, 1);
         assert_eq!(result.len(), num_samples);
     }
 

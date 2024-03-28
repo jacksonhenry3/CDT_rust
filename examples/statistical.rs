@@ -1,4 +1,5 @@
 // run this with cargo r -r --example random_sample_from_large_volume
+use cdt_rust::utils::write_volume_action_to_csv;
 use cdt_rust::volume_profiles::{generate_sample_profile, volume_profile_samples, VolumeProfile};
 use cdt_rust::{self, cdt};
 use itertools::Itertools;
@@ -9,65 +10,68 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 fn main() {
     // Parameters
-    let volume = 10; // Volume of the CDT
-    let time_size = 5;
+    // for time_size in (10..180).step_by(10) {
+    let time_size = 8;
+    let volume = 8 * 8; // Volume of the CDT
+                        // let time_size = 110;
+                        // Number of iterations between samples, it should be a sweep?
     let num_samples = 100_000; // Number of samples to generate
+    for num_iterations in 1..10 {
+        for sample_index in 0..=10 {
+            println!("Generating initial volume profile");
 
-    // Number of iterations between samples, it should be a sweep?
-    let num_iterations = 2 * volume / time_size;
+            // Generate initial volume profile by creating a vec of size time_size with each element equal to volume/time_size, except for the last element to enforce the volume constraint
+            let mut initial_volume_profile = vec![volume / time_size; time_size];
+            initial_volume_profile[time_size - 1] = volume - (volume / time_size) * (time_size - 1);
 
-    println!("Generating initial volume profile");
+            let initial_volume_profile = generate_sample_profile(
+                VolumeProfile::new(initial_volume_profile.into()),
+                num_iterations * 5,
+                1, //initialize with 5 times the number of iterations to make sure we are starting from a random spot. Shouldn't be needed, but makes me feel better.
+            );
 
-    // Generate initial volume profile by creating a vec of size time_size with each element equal to volume/time_size, except for the last element to enforce the volume constraint
-    let mut initial_volume_profile = vec![volume / time_size; time_size];
-    initial_volume_profile[time_size - 1] = volume - (volume / time_size) * (time_size - 1);
+            println!("Initial volume profile generated, beginning sample generation with {} steps between samples", num_iterations);
 
-    let initial_volume_profile = generate_sample_profile(
-        VolumeProfile::new(initial_volume_profile.into()),
-        num_iterations * 5, //initialize with 5 times the number of iterations to make sure we are starting from a random spot. Shouldn't be needed, but makes me feel better.
-    );
+            // Generate volume profile samples
+            let mut samples =
+                volume_profile_samples(initial_volume_profile, num_iterations, num_samples, 1);
 
-    println!("Initial volume profile generated, beginning sample generation with {} steps between samples", num_iterations);
+            println!("Volume profile samples generated");
 
-    // Generate volume profile samples
-    let mut samples = volume_profile_samples(initial_volume_profile, num_iterations, num_samples);
+            // Create file for saving results
+            let path = format!(
+                "data/Statistical_Volume_{volume}_TimeSize_{time_size}_stepsize_{num_iterations}_sample_{sample_index}.csv",
+            );
 
-    println!("Volume profile samples generated");
+            println!("Calculating actions");
 
-    // Create file for saving results
-    let path = format!(
-        "data/Statistical_Volume_{}_TimeSize_{}.csv",
-        volume, time_size
-    );
+            let progress_counter = AtomicUsize::new(0);
+            let length = samples.len();
 
-    let mut f = File::create(path).unwrap();
-    let mut w = std::io::BufWriter::new(&mut f);
+            // Calculate actions in parallel
+            let actions = samples.par_iter_mut().map(|vp| {
+                #[cfg(debug_assertions)]
+                {
+                    let progress = progress_counter.fetch_add(1, Ordering::SeqCst);
+                    let progress_percent = 100.0 * progress as f64 / (length as f64);
 
-    println!("Calculating actions");
+                    io::stdout().flush().unwrap();
+                    print!("\r actions {:.2}% calculated", progress_percent);
+                }
 
-    let progress_counter = AtomicUsize::new(0);
-    let length = samples.len();
+                // Generate a random CDT with volumeprofile vp
+                let cdt = cdt::CDT::random(vp);
+                let action = cdt_rust::r_sqrd_action(&cdt);
 
-    // Calculate actions in parallel
-    let actions = samples.par_iter_mut().map(|vp| {
-        let progress = progress_counter.fetch_add(1, Ordering::SeqCst);
-        let progress_percent = 100.0 * progress as f64 / (length as f64);
+                let volume_profile_string = vp.profile.iter().join("_");
+                (volume_profile_string, action)
+            });
 
-        io::stdout().flush().unwrap();
-        print!("\r{:.2}%", progress_percent);
+            println!("Saving to file");
 
-        // Generate a random CDT with volumeprofile vp
-        let cdt = cdt::CDT::random(vp);
-        let action = cdt_rust::r_sqrd_action(&cdt);
+            let data = actions.collect::<Vec<_>>();
 
-        let volume_profile_string = vp.profile.iter().join("_");
-        (volume_profile_string, action)
-    });
-
-    println!("Saving to file");
-
-    // Write results to file
-    for (volume_profile_string, action) in actions.collect::<Vec<_>>() {
-        writeln!(w, "{:?},{}", volume_profile_string, action).unwrap();
+            let a = write_volume_action_to_csv(data, &path);
+        }
     }
 }
