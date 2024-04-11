@@ -5,7 +5,7 @@ use rand::seq::SliceRandom;
 use rand::{thread_rng, Rng};
 use rayon::prelude::*;
 use std::collections::HashSet;
-use std::hash::Hash;
+use std::hash::{Hash, RandomState};
 use std::io::{self, Write};
 
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -21,9 +21,18 @@ impl VolumeProfile {
     pub fn new(profile: Vec<usize>) -> VolumeProfile {
         VolumeProfile { profile }
     }
+
+    pub fn time_size(self: &Self) -> usize {
+        self.profile.len()
+    }
+
+    pub fn volume(self: &Self) -> usize {
+        let l = self.profile.len();
+        self.profile[1..l - 1].iter().sum::<usize>() * 2 + self.profile[0] + self.profile[l - 1]
+    }
 }
 
-pub fn step(volume_profile: &VolumeProfile, step_scale: usize) -> VolumeProfile {
+pub fn step_old(volume_profile: &VolumeProfile, step_scale: usize) -> VolumeProfile {
     let mut profile = volume_profile.profile.clone();
     let mut rng = thread_rng();
 
@@ -35,13 +44,40 @@ pub fn step(volume_profile: &VolumeProfile, step_scale: usize) -> VolumeProfile 
             // let perturbation_amount = rng.gen_range(0..=step_scale.min((profile[*i] - 1)));
             // let disp = rng.gen_range(0..=perturbation_amount);
             // let perturbation_amount = perturbation_amount - disp;
-            let perturbation_amount = step_scale.min(profile[*i] - 1);
-            profile[*i] -= perturbation_amount;
-            profile[*j] += perturbation_amount;
+            let mut perturbation_amount_i = 1.min(profile[*i] - 1);
+            let mut perturbation_amount_j = perturbation_amount_i;
+            if *i == 0 || *i == profile.len() - 1 {
+                perturbation_amount_i = 2.min(profile[*i] - 2);
+            }
+
+            if *j == 0 || *j == profile.len() - 1 {
+                perturbation_amount_j = 2.min(profile[*j] - 2);
+            }
+
+            profile[*i] -= perturbation_amount_i;
+            profile[*j] += perturbation_amount_j;
         }
     }
 
     VolumeProfile { profile }
+}
+
+pub fn step(V: usize, T: usize) -> VolumeProfile {
+    let mut boundary_size1 = 2 * rand::thread_rng().gen_range((1..=V / 2 - (T - 2)));
+    let mut boundary_size2 = 2 * rand::thread_rng().gen_range((1..=V / 2 - (T - 2)));
+    let mut boundary_size = boundary_size1.max(boundary_size2);
+    // println!("{boundary_size}");
+    if V % 2 != 0 {
+        boundary_size += 1;
+    }
+
+    let bulk = constrained_sum_sample_pos(T - 2, (V - boundary_size) / 2);
+    let mut boundary = constrained_sum_sample_pos(2, boundary_size);
+    // let total = boundary.iter().sum::<usize>() + 2usize * bulk.iter().sum::<usize>();
+
+    boundary.splice(1..1, bulk.iter().cloned());
+
+    VolumeProfile::new(boundary)
 }
 
 pub fn acceptance_function(
@@ -70,9 +106,11 @@ pub fn generate_sample_profile(
 ) -> VolumeProfile {
     let mut current_state = initial_state;
     let mut log_current_multiplicty = log_num_cdts_in_profile(current_state.clone()).1;
+    let V = current_state.volume();
+    let T = current_state.time_size();
 
     for _ in 0..num_steps {
-        let proposed_vp = step(&current_state, step_scale);
+        let proposed_vp = step(V, T);
         (current_state, log_current_multiplicty, _) =
             acceptance_function(current_state, log_current_multiplicty, proposed_vp);
     }
@@ -88,6 +126,9 @@ pub fn volume_profile_samples(
     let progress_counter = AtomicUsize::new(0);
     let accepted_counter = AtomicUsize::new(0);
 
+    let V = initial_state.volume();
+    let T = initial_state.time_size();
+
     let samples: Vec<VolumeProfile> = (0..num_samples)
         .collect::<Vec<_>>()
         .chunks(num_samples / rayon::current_num_threads())
@@ -97,7 +138,7 @@ pub fn volume_profile_samples(
             let mut states: Vec<VolumeProfile> = Vec::new();
             for _ in chunk {
                 for _ in 0..num_steps {
-                    let proposed_vp = step(&current_state, step_scale);
+                    let proposed_vp = step(V, T);
                     let was_accepted;
                     (current_state, log_current_multiplicity, was_accepted) =
                         acceptance_function(current_state, log_current_multiplicity, proposed_vp);
@@ -183,4 +224,22 @@ pub fn num_cdts_in_profile(volume_profile: &VolumeProfile) -> u128 {
         };
     }
     count
+}
+
+pub fn constrained_sum_sample_pos(n: usize, total: usize) -> Vec<usize> {
+    // This generates an unweighted random partition of n with a total sum of total.
+    // however, we need the sum to be weighted by the number of CDTs in each partition.
+    let mut rng = thread_rng();
+    let mut dividers: Vec<usize> = (1..total).collect();
+    dividers.shuffle(&mut rng);
+    dividers.truncate(n - 1);
+    dividers.sort_unstable();
+    dividers.push(total);
+    let mut result = vec![0; n];
+    let mut prev = 0;
+    for (i, &num) in dividers.iter().enumerate() {
+        result[i] = num - prev;
+        prev = num;
+    }
+    result
 }
