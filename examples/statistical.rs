@@ -11,20 +11,18 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 fn main() {
     // Parameters
     // for time_size in (10..180).step_by(10) {
-    let time_size = 3;
+    let time_size = 32;
     let volume = 32 * 32; // Volume of the CDT
     let num_samples = 100_000; // Number of samples to generate
     for num_iterations in 10..=10 {
         // Number of iterations between samples, it should be a sweep?
-        for sample_index in 0..2 {
+        for sample_index in 0..10 {
             println!("Generating initial volume profile");
 
             // Generate initial volume profile by creating a vec of size time_size with each element equal to volume/time_size, except for the last element to enforce the volume constraint
-            let mut initial_volume_profile = vec![volume / 2 / time_size; time_size];
-            initial_volume_profile[0] += volume / time_size / 2;
-            initial_volume_profile[time_size - 1] += volume / time_size / 2;
-            initial_volume_profile = vec![1; 32];
-            initial_volume_profile[0] = 32 * 32 - 31;
+            let mut initial_volume_profile = vec![1; time_size];
+            initial_volume_profile[0] = volume - 2 * (time_size - 2) - 1;
+
             let initial_volume_profile = VolumeProfile::new(initial_volume_profile);
             // let initial_volume_profile = generate_sample_profile(
             //     VolumeProfile::new(initial_volume_profile.into()),

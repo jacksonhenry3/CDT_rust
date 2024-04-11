@@ -8,6 +8,8 @@ use std::collections::HashSet;
 use std::hash::{Hash, RandomState};
 use std::io::{self, Write};
 
+use weighted_rand::builder::*;
+
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::utils;
@@ -63,10 +65,15 @@ pub fn step_old(volume_profile: &VolumeProfile, step_scale: usize) -> VolumeProf
 }
 
 pub fn step(V: usize, T: usize) -> VolumeProfile {
-    let mut boundary_size1 = 2 * rand::thread_rng().gen_range((1..=V / 2 - (T - 2)));
-    let mut boundary_size2 = 2 * rand::thread_rng().gen_range((1..=V / 2 - (T - 2)));
-    let mut boundary_size = boundary_size1.max(boundary_size2);
-    // println!("{boundary_size}");
+    let possible_boundary_sizes: Vec<u32> = (1..=(V as u32) / 2 - ((T as u32) - 2))
+        .map(|x| 2 * x)
+        .collect();
+    let index_weights: Vec<u32> = possible_boundary_sizes.iter().map(|v| v - 1).collect();
+    let builder = WalkerTableBuilder::new(&index_weights);
+    let wa_table = builder.build();
+
+    let mut boundary_size = possible_boundary_sizes[wa_table.next()] as usize;
+
     if V % 2 != 0 {
         boundary_size += 1;
     }
