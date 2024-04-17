@@ -1,6 +1,7 @@
 #![allow(unused)]
 
 use cdt_rust::eh_action;
+use rand::{thread_rng, Rng};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs::File;
 use std::io::BufWriter;
@@ -26,9 +27,11 @@ use std::io::{self};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 fn main() {
-    let vp1 = VolumeProfile::new(vec![1, 6, 1]);
-    let vp2 = VolumeProfile::new(vec![6, 1, 6]);
+    // let vp1 = VolumeProfile::new(vec![1, 6, 1]);
+    // let vp2 = VolumeProfile::new(vec![6, 1, 6]);
 
-    println!("{}", log_num_cdts_in_profile(vp1).1);
-    println!("{}", log_num_cdts_in_profile(vp2).1);
+    // println!("{}", log_num_cdts_in_profile(vp1).1);
+    // println!("{}", log_num_cdts_in_profile(vp2).1);
+    let mut rng = thread_rng();
+    println!("{}", rng.gen::<f32>())
 }
