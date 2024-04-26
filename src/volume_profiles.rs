@@ -1,16 +1,20 @@
 use cached::proc_macro::cached;
 use core::panic;
 use itertools::Itertools;
+use rand::distributions::WeightedIndex;
+use rand::prelude::*;
 use rand::seq::SliceRandom;
 use rand::{thread_rng, Rng};
 use rayon::prelude::*;
 use std::collections::HashSet;
-use std::hash::Hash;
+use std::hash::{Hash, RandomState};
 use std::io::{self, Write};
+
+use weighted_rand::builder::*;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::utils;
+use crate::utils::{self, choose, log_choose};
 
 #[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub struct VolumeProfile {
@@ -21,23 +25,64 @@ impl VolumeProfile {
     pub fn new(profile: Vec<usize>) -> VolumeProfile {
         VolumeProfile { profile }
     }
+
+    pub fn time_size(self: &Self) -> usize {
+        self.profile.len()
+    }
+
+    pub fn volume(self: &Self) -> usize {
+        let l = self.profile.len();
+        self.profile[1..l - 1].iter().sum::<usize>() * 2 + self.profile[0] + self.profile[l - 1]
+    }
 }
-
-pub fn step(volume_profile: &VolumeProfile, step_scale: usize) -> VolumeProfile {
+pub fn step(volume_profile: &VolumeProfile) -> VolumeProfile {
     let mut profile = volume_profile.profile.clone();
-    let mut rng = thread_rng();
+    // the number of iterations can be changed to tune the acceptance rate, between 10-30% should be ideal.
+    for _ in 0..5 {
+        let mut rng = thread_rng();
 
-    let mut indices: Vec<usize> = (0..volume_profile.profile.len()).collect();
-    indices.shuffle(&mut rng);
+        let boundaries_match_probability = 0.00;
+        let mut indices: Vec<usize> = (0..volume_profile.profile.len()).collect();
+        if rng.gen::<f32>() < boundaries_match_probability {
+            indices = (1..volume_profile.profile.len() - 1).collect();
+            indices.shuffle(&mut rng);
+            // flipping this less than makes things odd.
+            if rng.gen::<f32>() > 0.5 {
+                indices.append(&mut vec![volume_profile.profile.len() - 1, 0])
+            } else {
+                indices.append(&mut vec![0, volume_profile.profile.len() - 1])
+            }
+        } else {
+            indices.shuffle(&mut rng);
+        }
 
-    for window in indices.chunks(2) {
-        if let [i, j] = window {
-            // let perturbation_amount = rng.gen_range(0..=step_scale.min((profile[*i] - 1)));
-            // let disp = rng.gen_range(0..=perturbation_amount);
-            // let perturbation_amount = perturbation_amount - disp;
-            let perturbation_amount = step_scale.min(profile[*i] - 1);
-            profile[*i] -= perturbation_amount;
-            profile[*j] += perturbation_amount;
+        for window in indices.chunks(2) {
+            if let [j, i] = window {
+                let mut perturbation_amount_i = 1.min(profile[*i] - 1);
+                let mut perturbation_amount_j = perturbation_amount_i;
+
+                let i_is_boundary = *i == 0 || *i == profile.len() - 1;
+                let j_is_boundary = *j == 0 || *j == profile.len() - 1;
+
+                if i_is_boundary && j_is_boundary {
+                } else {
+                    if i_is_boundary {
+                        perturbation_amount_i = 2;
+                        if profile[*i] <= 2 {
+                            perturbation_amount_i = 0;
+                        }
+                    }
+
+                    if j_is_boundary {
+                        perturbation_amount_j = 2;
+                    }
+                }
+
+                if perturbation_amount_i != 0 && perturbation_amount_j != 0 {
+                    profile[*i] -= perturbation_amount_i;
+                    profile[*j] += perturbation_amount_j;
+                }
+            }
         }
     }
 
@@ -70,9 +115,11 @@ pub fn generate_sample_profile(
 ) -> VolumeProfile {
     let mut current_state = initial_state;
     let mut log_current_multiplicty = log_num_cdts_in_profile(current_state.clone()).1;
+    let V = current_state.volume();
+    let T = current_state.time_size();
 
     for _ in 0..num_steps {
-        let proposed_vp = step(&current_state, step_scale);
+        let proposed_vp = step(&current_state);
         (current_state, log_current_multiplicty, _) =
             acceptance_function(current_state, log_current_multiplicty, proposed_vp);
     }
@@ -90,14 +137,14 @@ pub fn volume_profile_samples(
 
     let samples: Vec<VolumeProfile> = (0..num_samples)
         .collect::<Vec<_>>()
-        .chunks(num_samples / rayon::current_num_threads())
+        .par_chunks(num_samples / (rayon::current_num_threads()))
         .map(|chunk| {
             let mut current_state = initial_state.clone();
             let mut log_current_multiplicity = log_num_cdts_in_profile(current_state.clone()).1;
-            let mut states: Vec<VolumeProfile> = Vec::new();
+            let mut states: Vec<VolumeProfile> = Vec::with_capacity(num_samples);
             for _ in chunk {
                 for _ in 0..num_steps {
-                    let proposed_vp = step(&current_state, step_scale);
+                    let proposed_vp = step(&current_state);
                     let was_accepted;
                     (current_state, log_current_multiplicity, was_accepted) =
                         acceptance_function(current_state, log_current_multiplicity, proposed_vp);
@@ -159,7 +206,7 @@ pub fn volume_profiles(volume: usize, time_size: usize) -> HashSet<VolumeProfile
     final_result
 }
 
-#[cached]
+// #[cached]
 pub fn log_num_cdts_in_profile(volume_profile: VolumeProfile) -> (VolumeProfile, f64) {
     let scale_factor = 0.001 as f64;
     let mut log_count_sum = 0f64;
@@ -183,4 +230,22 @@ pub fn num_cdts_in_profile(volume_profile: &VolumeProfile) -> u128 {
         };
     }
     count
+}
+
+pub fn constrained_sum_sample_pos(n: usize, total: usize) -> Vec<usize> {
+    // This generates an unweighted random partition of n with a total sum of total.
+    // however, we need the sum to be weighted by the number of CDTs in each partition.
+    let mut rng = thread_rng();
+    let mut dividers: Vec<usize> = (1..total).collect();
+    dividers.shuffle(&mut rng);
+    dividers.truncate(n - 1);
+    dividers.sort_unstable();
+    dividers.push(total);
+    let mut result = vec![0; n];
+    let mut prev = 0;
+    for (i, &num) in dividers.iter().enumerate() {
+        result[i] = num - prev;
+        prev = num;
+    }
+    result
 }

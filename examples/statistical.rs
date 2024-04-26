@@ -1,6 +1,8 @@
 // run this with cargo r -r --example random_sample_from_large_volume
 use cdt_rust::utils::write_volume_action_to_csv;
-use cdt_rust::volume_profiles::{generate_sample_profile, volume_profile_samples, VolumeProfile};
+use cdt_rust::volume_profiles::{
+    generate_sample_profile, unweighted_random_vp, volume_profile_samples, VolumeProfile,
+};
 use cdt_rust::{self, cdt};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -11,27 +13,21 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 fn main() {
     // Parameters
     // for time_size in (10..180).step_by(10) {
-    let time_size = 8;
-    let volume = 8 * 8; // Volume of the CDT
-                        // let time_size = 110;
-                        // Number of iterations between samples, it should be a sweep?
+    let time_size = 128;
+    let volume = 128 * 128 * 2; // Volume of the CDT
     let num_samples = 100_000; // Number of samples to generate
-    for num_iterations in 1..10 {
-        for sample_index in 0..=10 {
+    for num_iterations in 20001..=20001 {
+        // Number of iterations between samples, it should be a sweep?
+        for sample_index in 2..=2 {
             println!("Generating initial volume profile");
 
-            // Generate initial volume profile by creating a vec of size time_size with each element equal to volume/time_size, except for the last element to enforce the volume constraint
-            let mut initial_volume_profile = vec![volume / time_size; time_size];
-            initial_volume_profile[time_size - 1] = volume - (volume / time_size) * (time_size - 1);
+            let initial_volume_profile = unweighted_random_vp(volume, time_size);
 
-            let initial_volume_profile = generate_sample_profile(
-                VolumeProfile::new(initial_volume_profile.into()),
-                num_iterations * 5,
-                1, //initialize with 5 times the number of iterations to make sure we are starting from a random spot. Shouldn't be needed, but makes me feel better.
-            );
+            let initial_volume_profile =
+                generate_sample_profile(initial_volume_profile, volume * 10, 1);
 
             println!("Initial volume profile generated, beginning sample generation with {} steps between samples", num_iterations);
-
+            println!("Initial Profile {:?}", initial_volume_profile);
             // Generate volume profile samples
             let mut samples =
                 volume_profile_samples(initial_volume_profile, num_iterations, num_samples, 1);
@@ -62,6 +58,8 @@ fn main() {
                 // Generate a random CDT with volumeprofile vp
                 let cdt = cdt::CDT::random(vp);
                 let action = cdt_rust::r_sqrd_action(&cdt);
+                // let action = cdt_rust::eh_action(&cdt);
+                // let action = 0.;
 
                 let volume_profile_string = vp.profile.iter().join("_");
                 (volume_profile_string, action)
@@ -69,9 +67,7 @@ fn main() {
 
             println!("Saving to file");
 
-            let data = actions.collect::<Vec<_>>();
-
-            let a = write_volume_action_to_csv(data, &path);
+            let _ = write_volume_action_to_csv(actions.collect(), &path);
         }
     }
 }

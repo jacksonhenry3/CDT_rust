@@ -138,7 +138,7 @@ pub fn cdt_iterator(volume_profile: Vec<usize>) -> impl Iterator<Item = CDT> {
 pub fn eh_action(cdt: &CDT) -> f64 {
     //calculate the einstien hilbert action of the cdt
     let mut result = 0f64;
-    let lambda = 0f64;
+    let lambda = 1f64;
 
     //sum the deficite angles of all nodes, all nodes are here identified as all lower right nodes of true triangles
     let nodes = cdt.nodes();
@@ -167,7 +167,7 @@ pub fn r_sqrd_action(cdt: &CDT) -> f64 {
     let mut result = 0f64;
     let lambda = 0f64;
 
-    //sum the deficite angles of all nodes, all nodes are here identified as all lower right nodes of true triangles
+    //sum the deficit angles of all nodes, all nodes are here identified as all lower right nodes of true triangles
     let nodes = cdt.nodes();
 
     for (time_index, space_index, dir) in nodes {
@@ -175,7 +175,6 @@ pub fn r_sqrd_action(cdt: &CDT) -> f64 {
         let num_adj_tris = number_of_triangles_around_a_node(cdt, time_index, space_index, dir);
         let area = num_adj_tris as f64 / 3.0;
 
-        // this could be made more efficient by passing num_adj_tris to deficit_angle
         let r = deficit_angle(num_adj_tris) / area;
         result += area * (r * r - lambda);
     }

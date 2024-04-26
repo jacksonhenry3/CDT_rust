@@ -10,12 +10,15 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 fn main() {
     // Parameters
 
-    let num_samples = 10_000; // Number of samples to generate
-                              // let volume_profile = VolumeProfile::new(vec![32; 32]);
+    let num_samples = 1_000_000; // Number of samples to generate
 
     // now create a volume profile with all ones except for the first value which is 32*31
-    let mut volume_profile = vec![1; 31];
-    volume_profile.append(&mut vec![32 * 32 - 31]);
+    // make a vec of usize that alternates between 63 and 1 repetedly and has length 32
+    // let volume_profile = vec![vec![63, 1]; 16].into_iter().flatten().collect();
+
+    let mut volume_profile = vec![1; 32];
+    volume_profile[0] = 32 * 32 / 2 - 1 * 30;
+    volume_profile[31] = 32 * 32 / 2 - 1 * 30;
 
     let volume_profile = VolumeProfile::new(volume_profile);
 
