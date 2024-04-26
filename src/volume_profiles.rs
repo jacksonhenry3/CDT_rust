@@ -1,6 +1,8 @@
 use cached::proc_macro::cached;
 use core::panic;
 use itertools::Itertools;
+use rand::distributions::WeightedIndex;
+use rand::prelude::*;
 use rand::seq::SliceRandom;
 use rand::{thread_rng, Rng};
 use rayon::prelude::*;
@@ -12,7 +14,7 @@ use weighted_rand::builder::*;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::utils;
+use crate::utils::{self, choose, log_choose};
 
 #[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub struct VolumeProfile {
@@ -34,7 +36,60 @@ impl VolumeProfile {
     }
 }
 
-pub fn step_old_old(volume_profile: &VolumeProfile, step_scale: usize) -> VolumeProfile {
+// This block is all deprecated
+{
+    pub fn unweighted_random_vp(V: usize, T: usize) -> VolumeProfile {
+    let possible_boundary_sizes: Vec<u32> = (1..=(V as u32) / 2 - ((T as u32) - 2))
+        .map(|x| 2 * x)
+        .collect();
+    let index_weights: Vec<f32> = possible_boundary_sizes
+        .iter()
+        .map(|v| {
+            (v - 1) as f32
+                * f64::exp(
+                    log_choose(((V - *v as usize) / 2 - 1) as usize, (T - 2 - 1) as usize)
+                        - log_choose(((V - 2) / 2 - 1) as usize, (T - 2 - 1) as usize),
+                ) as f32
+        })
+        .collect();
+
+    // println!("{:?}", possible_boundary_sizes);
+    // println!("{:?}", index_weights);
+    // println!();
+
+    let dist = WeightedIndex::new(&index_weights).unwrap();
+    let mut rng = thread_rng();
+    let mut boundary_size = possible_boundary_sizes[dist.sample(&mut rng)] as usize;
+    // println!("{}", boundary_size);
+
+    // let builder = WalkerTableBuilder::new(&index_weights);
+
+    // let wa_table = builder.build();
+
+    // let mut boundary_size = possible_boundary_sizes[wa_table.next()] as usize;
+
+    if V % 2 != 0 {
+        boundary_size += 1;
+    }
+
+    let bulk = constrained_sum_sample_pos(T - 2, (V - boundary_size) / 2);
+    let mut boundary = constrained_sum_sample_pos(2, boundary_size);
+    boundary.splice(1..1, bulk.iter().cloned());
+
+    VolumeProfile::new(boundary)
+}
+
+    fn distance(vec1: &Vec<usize>, vec2: &Vec<usize>) -> f64 {
+    assert_eq!(vec1.len(), vec2.len());
+    let mut sum = 0;
+    for i in 0..vec1.len() {
+        let diff = vec1[i] as isize - vec2[i] as isize;
+        sum += diff.pow(2);
+    }
+    (sum as f64).sqrt()
+}
+
+    pub fn step_old_old(volume_profile: &VolumeProfile, step_scale: usize) -> VolumeProfile {
     let mut profile = volume_profile.profile.clone();
     let mut rng = thread_rng();
 
@@ -64,114 +119,124 @@ pub fn step_old_old(volume_profile: &VolumeProfile, step_scale: usize) -> Volume
     VolumeProfile { profile }
 }
 
-pub fn unweighted_random_vp(V: usize, T: usize) -> VolumeProfile {
-    let possible_boundary_sizes: Vec<u32> = (1..=(V as u32) / 2 - ((T as u32) - 2))
-        .map(|x| 2 * x)
-        .collect();
-    let index_weights: Vec<u32> = possible_boundary_sizes.iter().map(|v| v - 1).collect();
-    let builder = WalkerTableBuilder::new(&index_weights);
-    let wa_table = builder.build();
+    pub fn step_nearby_random(vp_old: &VolumeProfile) -> VolumeProfile {
+    let V: usize = vp_old.volume();
+    let T = vp_old.time_size();
+    let mut vp = unweighted_random_vp(V, T);
+    let mut vp_best = vp.clone();
+    let a = vp.profile;
+    for i in 0..10 {
+        vp = unweighted_random_vp(V, T);
 
-    let mut boundary_size = possible_boundary_sizes[wa_table.next()] as usize;
-
-    if V % 2 != 0 {
-        boundary_size += 1;
-    }
-
-    let bulk = constrained_sum_sample_pos(T - 2, (V - boundary_size) / 2);
-    let mut boundary = constrained_sum_sample_pos(2, boundary_size);
-    boundary.splice(1..1, bulk.iter().cloned());
-
-    VolumeProfile::new(boundary)
-}
-
-pub fn step_old(vp_old: &VolumeProfile, V: usize, T: usize) -> VolumeProfile {
-    let vp_new = unweighted_random_vp(V, T);
-    // let total = boundary.iter().sum::<usize>() + 2usize * bulk.iter().sum::<usize>();
-    let vp_old = &vp_old.profile;
-
-    let new = vp_new
-        .profile
-        .iter()
-        .zip(vp_old)
-        .map(|(new_val, old_val)| {
-            // println!(
-            //     "{old_val},{new_val},{}",
-            //     ((*old_val as f32 + ((*new_val as f32 - *old_val as f32) / 2.)) as usize)
-            // );
-            (*old_val as f32 + ((*new_val as f32 - *old_val as f32) / ((V) as f32 / T as f32)))
-                as usize
-        })
-        .collect::<Vec<_>>();
-
-    let mut new_vp = VolumeProfile::new(new);
-
-    // println!("{},{}", V, new_vp.volume());
-    let mut volume_difference = V - new_vp.volume();
-
-    if volume_difference % 2 != 0 {
-        let index = rand::thread_rng().gen_range(0..1);
-        if index == 0 {
-            new_vp.profile[0] += 1;
-        } else {
-            new_vp.profile[T - 1] += 1;
+        if distance(&vp.profile, &vp_old.profile) < distance(&vp_best.profile, &vp_old.profile) {
+            vp_best = vp;
         }
-
-        volume_difference -= 1;
     }
 
-    for _ in 0..volume_difference {
-        let index = rand::thread_rng().gen_range(0..1);
-        new_vp.profile[index] += 1
-    }
-
-    new_vp
+    vp_best
 }
 
+    pub fn step_random(vp_old: &VolumeProfile) -> VolumeProfile {
+    let V: usize = vp_old.volume();
+    let T = vp_old.time_size();
+    let vp_new = unweighted_random_vp(V, T);
+    // let new_vp = vp_new;
+    // let vp_old = &vp_old.profile;
+
+    // let new = vp_new
+    //     .profile
+    //     .iter()
+    //     .zip(vp_old)
+    //     .map(|(new_val, old_val)| {
+    //         // println!(
+    //         //     "{old_val},{new_val},{}",
+    //         //     ((*old_val as f32 + ((*new_val as f32 - *old_val as f32) / 2.)) as usize)
+    //         // );
+    //         (*old_val as f32 + ((*new_val as f32 - *old_val as f32) / (30.))) as usize
+    //     })
+    //     .collect::<Vec<_>>();
+
+    // let mut new_vp = VolumeProfile::new(new);
+
+    // // println!(
+    // //     "{},{},{:?},{:?},{:?}",
+    // //     V,
+    // //     new_vp.volume(),
+    // //     new_vp,
+    // //     vp_old,
+    // //     vp_new
+    // // );
+    // let mut volume_difference = V - new_vp.volume();
+
+    // if volume_difference % 2 != 0 {
+    //     let index = rand::thread_rng().gen_range(0..1);
+    //     if index == 0 {
+    //         new_vp.profile[0] += 1;
+    //     } else {
+    //         new_vp.profile[T - 1] += 1;
+    //     }
+
+    //     volume_difference -= 1;
+    // }
+
+    // for _ in 0..volume_difference {
+    //     let index = rand::thread_rng().gen_range(0..1);
+    //     new_vp.profile[index] += 1
+    // }
+
+    // println!("{{\"{:?}\",\"{:?}\"}},", vp_old, new_vp.profile);
+
+    vp_new
+}
+}
+// new old step
 pub fn step(volume_profile: &VolumeProfile) -> VolumeProfile {
     let mut profile = volume_profile.profile.clone();
-    let mut rng = thread_rng();
+    // the number of iterations can be changed to tune the acceptance rate, between 10-30% should be ideal.
+    for _ in 0..5 {
+        let mut rng = thread_rng();
 
-    let boundaries_match_probability = 0.05;
-    let mut indices: Vec<usize> = (0..volume_profile.profile.len()).collect();
-    if rng.gen::<f32>() < boundaries_match_probability {
-        indices = (1..volume_profile.profile.len() - 1).collect();
-        indices.shuffle(&mut rng);
-        // flipping this less than makes things odd.
-        if rng.gen::<f32>() < 0.5 {
-            indices.append(&mut vec![volume_profile.profile.len() - 1, 0])
-        } else {
-            indices.append(&mut vec![0, volume_profile.profile.len() - 1])
-        }
-    } else {
-        indices.shuffle(&mut rng);
-    }
-
-    for window in indices.chunks(2) {
-        if let [j, i] = window {
-            let mut perturbation_amount_i = 1.min(profile[*i] - 1);
-            let mut perturbation_amount_j = perturbation_amount_i;
-
-            let i_is_boundary = *i == 0 || *i == profile.len() - 1;
-            let j_is_boundary = *j == 0 || *j == profile.len() - 1;
-
-            if i_is_boundary && j_is_boundary {
+        let boundaries_match_probability = 0.00;
+        let mut indices: Vec<usize> = (0..volume_profile.profile.len()).collect();
+        if rng.gen::<f32>() < boundaries_match_probability {
+            indices = (1..volume_profile.profile.len() - 1).collect();
+            indices.shuffle(&mut rng);
+            // flipping this less than makes things odd.
+            if rng.gen::<f32>() > 0.5 {
+                indices.append(&mut vec![volume_profile.profile.len() - 1, 0])
             } else {
-                if i_is_boundary {
-                    perturbation_amount_i = 2;
-                    if profile[*i] <= 2 {
-                        perturbation_amount_i = 0;
+                indices.append(&mut vec![0, volume_profile.profile.len() - 1])
+            }
+        } else {
+            indices.shuffle(&mut rng);
+        }
+
+        for window in indices.chunks(2) {
+            if let [j, i] = window {
+                let mut perturbation_amount_i = 1.min(profile[*i] - 1);
+                let mut perturbation_amount_j = perturbation_amount_i;
+
+                let i_is_boundary = *i == 0 || *i == profile.len() - 1;
+                let j_is_boundary = *j == 0 || *j == profile.len() - 1;
+
+                if i_is_boundary && j_is_boundary {
+                } else {
+                    if i_is_boundary {
+                        perturbation_amount_i = 2;
+                        if profile[*i] <= 2 {
+                            perturbation_amount_i = 0;
+                        }
+                    }
+
+                    if j_is_boundary {
+                        perturbation_amount_j = 2;
                     }
                 }
 
-                if j_is_boundary {
-                    perturbation_amount_j = 2;
+                if perturbation_amount_i != 0 && perturbation_amount_j != 0 {
+                    profile[*i] -= perturbation_amount_i;
+                    profile[*j] += perturbation_amount_j;
                 }
-            }
-
-            if perturbation_amount_i != 0 && perturbation_amount_j != 0 {
-                profile[*i] -= perturbation_amount_i;
-                profile[*j] += perturbation_amount_j;
             }
         }
     }
@@ -225,16 +290,13 @@ pub fn volume_profile_samples(
     let progress_counter = AtomicUsize::new(0);
     let accepted_counter = AtomicUsize::new(0);
 
-    let V = initial_state.volume();
-    let T = initial_state.time_size();
-
     let samples: Vec<VolumeProfile> = (0..num_samples)
         .collect::<Vec<_>>()
-        .par_chunks(num_samples / rayon::current_num_threads())
+        .par_chunks(num_samples / (rayon::current_num_threads()))
         .map(|chunk| {
             let mut current_state = initial_state.clone();
             let mut log_current_multiplicity = log_num_cdts_in_profile(current_state.clone()).1;
-            let mut states: Vec<VolumeProfile> = Vec::new();
+            let mut states: Vec<VolumeProfile> = Vec::with_capacity(num_samples);
             for _ in chunk {
                 for _ in 0..num_steps {
                     let proposed_vp = step(&current_state);
@@ -299,7 +361,7 @@ pub fn volume_profiles(volume: usize, time_size: usize) -> HashSet<VolumeProfile
     final_result
 }
 
-#[cached]
+// #[cached]
 pub fn log_num_cdts_in_profile(volume_profile: VolumeProfile) -> (VolumeProfile, f64) {
     let scale_factor = 0.001 as f64;
     let mut log_count_sum = 0f64;
