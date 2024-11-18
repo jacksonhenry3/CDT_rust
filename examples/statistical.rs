@@ -13,10 +13,10 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 fn main() {
     // Parameters
     // for time_size in (10..180).step_by(10) {
-    let time_size = 128;
-    let volume = 128 * 128 * 2; // Volume of the CDT
-    let num_samples = 100_000; // Number of samples to generate
-    for num_iterations in 20001..=20001 {
+    let time_size = 64;
+    let volume = 64 * 64 * 2; // Volume of the CDT
+    let num_samples = 100; // Number of samples to generate
+    for num_iterations in 2001..=2001 {
         // Number of iterations between samples, it should be a sweep?
         for sample_index in 2..=2 {
             println!("Generating initial volume profile");
@@ -68,6 +68,8 @@ fn main() {
             println!("Saving to file");
 
             let _ = write_volume_action_to_csv(actions.collect(), &path);
+
+            println!("{}", &path);
         }
     }
 }

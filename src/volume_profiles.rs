@@ -134,7 +134,7 @@ pub fn volume_profile_samples(
 ) -> Vec<VolumeProfile> {
     let progress_counter = AtomicUsize::new(0);
     let accepted_counter = AtomicUsize::new(0);
-
+    println!("{}", rayon::current_num_threads());
     let samples: Vec<VolumeProfile> = (0..num_samples)
         .collect::<Vec<_>>()
         .par_chunks(num_samples / (rayon::current_num_threads()))
@@ -248,4 +248,16 @@ pub fn constrained_sum_sample_pos(n: usize, total: usize) -> Vec<usize> {
         prev = num;
     }
     result
+}
+
+pub fn unweighted_random_vp(volume: usize, time_size: usize) -> VolumeProfile {
+    // let partition = weighted_random_partition(time_size, volume / 2);
+    let partition = constrained_sum_sample_pos(time_size, volume / 2);
+
+    // not calculculating the id leads to a ~10% speedup (IF COLLECTING IN TO A HASH TABLE)
+    VolumeProfile::new(partition)
+    // VolumeProfile {
+    //     profile: partition,
+    //     id: 0,
+    // }
 }
